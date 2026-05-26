@@ -50,3 +50,36 @@ class Config:
     def __post_init__(self):
         if self.yes_no_map is None:
             self.yes_no_map = {"Yes": 1, "No": 0, "Female": 1, "Male": 0}
+
+    # Models_classification
+    models_classification: List[str] = field(default_factory=lambda:[
+        "logistic_regression", "lightgbm", "knn"])
+
+    # Baseline logistic value_regression
+    lr_C: float = 1.0
+    lr_max_iter: int = 1000
+    lr_solver: str = "lbfgs"
+
+    # lightgbmClassification
+    lgbm_n_estimators: int = 500
+    lgbm_learning_rate: float = 0.05
+    lgbm_num_leaves: int = 31
+
+    # KNN
+    knn_n_neighbors: int = 5
+
+    #Models_regression
+    models_regression: List[str] = field(default_factory=lambda:["ridge", "lightgbm", "mlp"])
+
+    #Baseline Ridge
+    ridge_alpha: float = 1.0
+
+    #LightGBM Regression
+    lgbm_r_n_estimators: int = 500
+    lgbm_r_learning_rate: float = 0.05
+    lgbm_r_num_leaves: int = 31
+
+    #MLP
+    mlp_hidden_layer_sizes: tuple = (64, 32)
+    mlp_max_iter: int = 500
+
