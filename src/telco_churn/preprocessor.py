@@ -1,0 +1,98 @@
+import pandas as pd
+import warnings
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+
+from configs.Telco_churn_config import Config
+
+
+class PreprocessorClassification:
+    """Класс для preprocessing'a данных """
+    def __init__(self, config: Config):
+        self.config = config
+        self.binary_columns = config.binary_columns
+        self.category_columns = config.category_columns
+        self.numeric_columns = config.numeric_columns
+        self.feature_columns = self.binary_columns + self.category_columns + self.numeric_columns
+        self.preprocessor = None
+
+    def _validate_columns(self, X: pd.DataFrame) -> None:
+        """Проверка полноты признаков"""
+        extra_columns = set(X.columns) - set(self.feature_columns)
+        missing_columns = set(self.feature_columns) - set(X.columns)
+        if extra_columns:
+            warnings.warn(f"Лишние признаки не будут учтены: {extra_columns}")
+        if missing_columns:
+            raise ValueError(f"Не хватает признаков: {missing_columns}")
+
+    def _map_yes_no(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Преобразование для Yes/No"""
+        for column in self.binary_columns:
+            if column in X.columns:
+                mapped = X[column].map(self.config.yes_no_map)
+                if mapped.isna().any():
+                    invalid_values = X.loc[mapped.isna(), column].unique()
+                    raise ValueError(
+                        f"Неизвестные значения в колонке '{column}': {invalid_values}")
+
+                X[column] = mapped.astype(float)
+        return X
+
+    def _prepare_input(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Общая подготовка данных перед fit/transform"""
+        X = X.copy()
+        self._validate_columns(X)
+        valid_features = [col for col in self.feature_columns if col in X.columns]
+        X = X[valid_features]
+        X = self._map_yes_no(X)
+        return X
+
+    def _build_dataframe(self, X_array, X_index) -> pd.DataFrame:
+        """Собирает DataFrame после трансформации"""
+        all_cols = self.preprocessor.get_feature_names_out()
+
+        return pd.DataFrame(
+            X_array,
+            columns=all_cols,
+            index=X_index
+        )
+
+    def fit_transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        X = self._prepare_input(X)
+
+        self.preprocessor = ColumnTransformer(
+            transformers=[
+                ('numeric', StandardScaler(), self.numeric_columns),
+                ('categorical', OneHotEncoder(
+                    drop='first', handle_unknown='ignore', sparse_output=False),
+                 self.category_columns),
+                ('binary', 'passthrough', self.binary_columns)
+            ]
+        )
+
+        X_array = self.preprocessor.fit_transform(X)
+
+        return self._build_dataframe(
+            X_array,
+            X.index
+        )
+
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        if self.preprocessor is None:
+            raise ValueError("Сначала нужно вызвать fit_transform на train данных")
+
+        X = self._prepare_input(X)
+        X_array = self.preprocessor.transform(X)
+        return self._build_dataframe(
+            X_array,
+            X.index
+        )
+
+    def transform_target(self, y: pd.Series) -> pd.Series:
+        """Преобразуем Yes/No в 0/1 для целевой переменной"""
+        mapped = y.map(self.config.yes_no_map)
+
+        if mapped.isna().any():
+            invalid = y.loc[mapped.isna()].unique()
+            raise ValueError(f"Неизвестные значения target: {invalid}")
+        return mapped.astype(int)
