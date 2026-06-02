@@ -83,3 +83,6 @@ class Config:
     mlp_hidden_layer_sizes: tuple = (64, 32)
     mlp_max_iter: int = 500
 
+    # Tunning
+    n_trials: int = 10
+    n_splits: int = 3
