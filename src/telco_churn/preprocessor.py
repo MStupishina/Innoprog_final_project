@@ -1,12 +1,14 @@
 import pandas as pd
 import warnings
+
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.utils.validation import check_is_fitted
 
 from configs.Telco_churn_config import Config
 
-
-class PreprocessorClassification:
+class PreprocessorClassification(BaseEstimator, TransformerMixin):
     """Класс для preprocessing'a данных """
     def __init__(self, config: Config):
         self.config = config
@@ -57,7 +59,7 @@ class PreprocessorClassification:
             index=X_index
         )
 
-    def fit_transform(self, X: pd.DataFrame) -> pd.DataFrame:
+    def fit(self, X: pd.DataFrame, y=None) -> "PreprocessorClassification":
         X = self._prepare_input(X)
 
         self.preprocessor = ColumnTransformer(
@@ -70,16 +72,12 @@ class PreprocessorClassification:
             ]
         )
 
-        X_array = self.preprocessor.fit_transform(X)
-
-        return self._build_dataframe(
-            X_array,
-            X.index
-        )
+        self.preprocessor.fit(X)
+        self.is_fitted_ = True
+        return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        if self.preprocessor is None:
-            raise ValueError("Сначала нужно вызвать fit_transform на train данных")
+        check_is_fitted(self, "is_fitted_")
 
         X = self._prepare_input(X)
         X_array = self.preprocessor.transform(X)
