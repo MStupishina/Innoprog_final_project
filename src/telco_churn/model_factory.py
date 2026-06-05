@@ -3,7 +3,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from lightgbm import LGBMClassifier, LGBMRegressor
 from sklearn.neural_network import MLPRegressor
 
-from configs.Telco_churn_config import Config
+from configs.telco_churn_config import Config
 
 
 class ModelFactory:

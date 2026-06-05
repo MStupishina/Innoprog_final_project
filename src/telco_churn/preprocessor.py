@@ -6,7 +6,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.utils.validation import check_is_fitted
 
-from configs.Telco_churn_config import Config
+from configs.telco_churn_config import Config
 
 class PreprocessorClassification(BaseEstimator, TransformerMixin):
     """Класс для preprocessing'a данных """

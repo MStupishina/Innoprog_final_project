@@ -8,7 +8,7 @@ from sklearn import clone
 from sklearn.metrics import roc_auc_score, f1_score
 from sklearn.pipeline import Pipeline
 
-from configs.Telco_churn_config import Config
+from configs.telco_churn_config import Config
 
 class LGBMTuner:
     """Подбор гиперпараметров для LightGBM"""

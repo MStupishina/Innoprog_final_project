@@ -2,7 +2,7 @@ import pandas as pd
 from typing import Tuple
 from sklearn.model_selection import train_test_split
 
-from configs.Telco_churn_config import Config
+from configs.telco_churn_config import Config
 from src.telco_churn.utils import load_data, save_data
 
 
