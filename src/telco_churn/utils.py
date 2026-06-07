@@ -36,4 +36,17 @@ def save_data(df: pd.DataFrame, file_path: str | Path, index: bool = False) -> N
 
     print(f"[INFO] Данные сохранены в: {file_path} | Размер: {df.shape}")
 
-
+def make_json_serializable(obj):
+    """
+    Преобразует объекты (np.ndarray, pd.Series) в типы, которые JSON умеет сериализовать.
+    """
+    if isinstance(obj, dict):
+        return {k: make_json_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [make_json_serializable(v) for v in obj]
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, pd.Series):
+        return obj.tolist()
+    else:
+        return obj
