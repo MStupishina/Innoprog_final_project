@@ -14,6 +14,7 @@ from src.telco_churn.preprocessor import PreprocessorClassification
 from src.telco_churn.trainer import ClassificationTrainer
 from src.telco_churn.tuning import LGBMTuner, KNNTuner
 from src.telco_churn.utils import make_json_serializable
+from src.telco_churn.visualisation import plot_threshold_metrics, plot_roc_curve, plot_pr_curve, plot_confusion_matrix
 
 # Подавляем предупреждения от LightGBM+Optuna
 warnings.filterwarnings(
@@ -123,6 +124,27 @@ def main():
         test_metrics = trainer.evaluate(y_test_processed, test_pred, test_proba)
         for metric, value in test_metrics.items():
             print(f"{metric}: {value}")
+        plot_roc_curve(
+            y_true=y_test_processed,
+            y_proba=test_proba,
+            model_name=model_name.lower(),
+            output_dir=model_path
+        )
+
+        plot_pr_curve(
+            y_true=y_test_processed,
+            y_proba=test_proba,
+            model_name=model_name.lower(),
+            output_dir=model_path
+        )
+
+        plot_confusion_matrix(
+            y_true=y_test_processed,
+            y_pred=test_pred,
+            model_name=model_name.lower(),
+            class_names=["No Churn", "Churn"],
+            output_dir=model_path
+        )
 
         current_score = val_metrics.get("pr_auc", 0)
         if current_score > best_metric:
