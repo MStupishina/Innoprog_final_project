@@ -86,11 +86,4 @@ class PreprocessorClassification(BaseEstimator, TransformerMixin):
             X.index
         )
 
-    def transform_target(self, y: pd.Series) -> pd.Series:
-        """Преобразуем Yes/No в 0/1 для целевой переменной"""
-        mapped = y.map(self.config.yes_no_map)
 
-        if mapped.isna().any():
-            invalid = y.loc[mapped.isna()].unique()
-            raise ValueError(f"Неизвестные значения target: {invalid}")
-        return mapped.astype(int)

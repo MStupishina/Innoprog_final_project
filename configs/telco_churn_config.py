@@ -9,7 +9,7 @@ class Config:
     # Data
     raw_data_path: Path = BASE_DIR/"data/raw"
     processed_data_dir: Path = BASE_DIR/"data/processed"
-
+    model_dir: Path = BASE_DIR/"models"
 
     target_column: str = "Churn"
 
