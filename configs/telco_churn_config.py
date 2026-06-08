@@ -86,3 +86,7 @@ class Config:
     # Tunning
     n_trials: int = 10
     n_splits: int = 3
+
+    # OOF settings
+    oof_n_splits: int = 5  # число фолдов в OOF
+    oof_cal_size: float = 0.2  # доля от fold train под калибровку

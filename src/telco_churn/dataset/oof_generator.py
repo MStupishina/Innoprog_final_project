@@ -33,13 +33,8 @@ class OOFPChurnGenerator:
         """
         Запускает OOF-цикл, собирает датасет с p_churn и сохраняет его.
         """
-        oof_proba = self._compute_oof(
-            train_val_df, best_pipeline
-        )
-        test_proba = self._compute_test(
-            test_df, best_pipeline,
-            best_calibrator
-        )
+        oof_proba = self._compute_oof(train_val_df, best_pipeline)
+        test_proba = self._compute_test(test_df, best_pipeline, best_calibrator)
 
         # Собираем итоговый датасет
         tv = train_val_df.copy().reset_index(drop=True)
@@ -67,7 +62,7 @@ class OOFPChurnGenerator:
 
         X_tv = train_val_df.drop(columns=[self.config.target_column])
         y_tv = train_val_df[self.config.target_column]
-        y_tv = encode_target(y_tv)
+        y_tv = encode_target(y_tv, self.config.yes_no_map)
 
         oof_proba = np.zeros(len(train_val_df))
 
@@ -103,10 +98,10 @@ class OOFPChurnGenerator:
 
                 fold_calib = ProbabilityCalibrator(method="sigmoid")
                 fold_calib.fit(fold_pipeline, X_cal, y_cal)
-                oof_proba[val_idx] = fold_calib.predict_proba(X_val_raw)
+                oof_proba[val_idx] = self._get_positive_class_proba(fold_calib, X_val_raw)
             else:
                 fold_pipeline.fit(X_tr_raw, y_tr_raw)
-                oof_proba[val_idx] = fold_pipeline.predict_proba(X_val_raw)[:, 1]
+                oof_proba[val_idx] = self._get_positive_class_proba(fold_pipeline, X_val_raw)
 
             print(f"[OOF] Fold {fold + 1}/{self.config.oof_n_splits} готов")
 
@@ -125,6 +120,12 @@ class OOFPChurnGenerator:
         X_test = test_df.drop(columns=[self.config.target_column])
 
         if best_calibrator is not None:
-            return best_calibrator.predict_proba(X_test)
+            return self._get_positive_class_proba(best_calibrator, X_test)
 
-        return best_pipeline.predict_proba(X_test)[:, 1]
+        return self._get_positive_class_proba(best_pipeline, X_test)
+
+    def _get_positive_class_proba(self, predictor, X):
+        proba = predictor.predict_proba(X)
+        if proba.ndim == 2:
+            return proba[:, 1]
+        return proba
