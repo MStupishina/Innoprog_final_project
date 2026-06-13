@@ -1,11 +1,11 @@
 import warnings
 
 from configs.telco_churn_config import Config
-from src.telco_churn.classification.classification_pipeline_steps import train_and_select_model, fit_final_pipeline, \
+from src.telco_churn.pipelines.classification_pipeline_steps import train_and_select_model, fit_final_pipeline, \
     save_artifacts
-from src.telco_churn.dataset.dataset import DatasetLoaderClassification
-from src.telco_churn.dataset.encode_target import encode_target_classification
-from src.telco_churn.dataset.oof_generator import OOFPChurnGenerator
+from src.telco_churn.data.dataset_loader import DatasetLoaderClassification
+from src.telco_churn.data.encode_target import encode_target_classification
+from src.telco_churn.data.oof_generator import OOFPChurnGenerator
 
 # Подавляем предупреждения от LightGBM+Optuna
 warnings.filterwarnings(

@@ -9,7 +9,7 @@ from sklearn.metrics import (precision_recall_curve, confusion_matrix, recall_sc
 
 
 # === Classification ===
-def plot_roc_curve(y_true, y_proba, model_name="model", output_dir=None, show_plot=True):
+def plot_roc_curve(y_true, y_proba, model_name="models", output_dir=None, show_plot=True):
     """ROC-кривая с AUC"""
     fpr, tpr, _ = roc_curve(y_true, y_proba)
     roc_auc = auc(fpr, tpr)
@@ -40,7 +40,7 @@ def plot_roc_curve(y_true, y_proba, model_name="model", output_dir=None, show_pl
     plt.close(fig)
 
 
-def plot_pr_curve(y_true, y_proba, model_name="model", output_dir=None, show_plot=True):
+def plot_pr_curve(y_true, y_proba, model_name="models", output_dir=None, show_plot=True):
     """Precision-Recall кривая с PR-AUC"""
 
     precision, recall, _ = precision_recall_curve(y_true, y_proba)
@@ -76,7 +76,7 @@ def plot_pr_curve(y_true, y_proba, model_name="model", output_dir=None, show_plo
     plt.close(fig)
 
 
-def plot_confusion_matrix(y_true, y_pred, model_name="model", class_names=None, output_dir=None, show_plot=True):
+def plot_confusion_matrix(y_true, y_pred, model_name="models", class_names=None, output_dir=None, show_plot=True):
     """Confusion matrix в виде heatmap"""
     if class_names is None:
         class_names = ["Class 0", "Class 1"]
@@ -112,7 +112,7 @@ def plot_confusion_matrix(y_true, y_pred, model_name="model", class_names=None, 
     plt.close(fig)
 
 
-def plot_threshold_metrics(y_true, y_proba, model_name="model", output_dir=None,
+def plot_threshold_metrics(y_true, y_proba, model_name="models", output_dir=None,
                            thresholds=None, show_plot=True):
     """
     Визуализирует FP, FN, Precision, Recall и F1 по разным порогам.

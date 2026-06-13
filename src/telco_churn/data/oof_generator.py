@@ -7,9 +7,9 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 
 from configs.telco_churn_config import Config
-from src.telco_churn.classification.calibration import ProbabilityCalibrator
-from src.telco_churn.dataset.encode_target import encode_target
-from src.telco_churn.preprocessor import PreprocessorClassification
+from src.telco_churn.postprocessing.calibration import ProbabilityCalibrator
+from src.telco_churn.data.encode_target import encode_target
+from src.telco_churn.pipelines.preprocessor import PreprocessorClassification
 
 
 class OOFPChurnGenerator:
@@ -66,7 +66,7 @@ class OOFPChurnGenerator:
 
         oof_proba = np.zeros(len(train_val_df))
 
-        model = best_pipeline.named_steps["model"]
+        model = best_pipeline.named_steps["models"]
 
         needs_calibration = isinstance(model, (LGBMClassifier, KNeighborsClassifier))
 
@@ -76,7 +76,7 @@ class OOFPChurnGenerator:
         )
 
         for fold, (tr_idx, val_idx) in enumerate(skf.split(X_tv, y_tv)):
-            fold_model = clone(best_pipeline.named_steps["model"])
+            fold_model = clone(best_pipeline.named_steps["models"])
             X_tr_raw = X_tv.iloc[tr_idx]
             y_tr_raw = y_tv.iloc[tr_idx]
             X_val_raw = X_tv.iloc[val_idx]
@@ -84,7 +84,7 @@ class OOFPChurnGenerator:
             # Препроцессор обучается только на данных этого фолда
             fold_pipeline = Pipeline([
                 ("preprocessor", PreprocessorClassification(self.config)),
-                ("model", fold_model)])
+                ("models", fold_model)])
 
             if needs_calibration:
                 # Делим fold train на train/cal для калибровки

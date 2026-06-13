@@ -61,7 +61,7 @@ class LGBMTuner:
             X_val_processed = preprocessor.transform(X_val_fold)
 
             # Новая модель для каждого fold
-            model = clone(pipeline.named_steps["model"])
+            model = clone(pipeline.named_steps["models"])
 
             model.set_params(**{
                 k.replace("model__", ""): v
@@ -197,7 +197,7 @@ class LGBMRegressorTuner:
             X_train_processed = preprocessor.fit_transform(X_train_fold)
             X_val_processed = preprocessor.transform(X_val_fold)
 
-            model = clone(pipeline.named_steps["model"])
+            model = clone(pipeline.named_steps["models"])
 
             model.set_params(**{
                 k.replace("model__", ""): v

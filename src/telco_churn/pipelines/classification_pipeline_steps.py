@@ -8,12 +8,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 
 from configs.telco_churn_config import Config
-from src.telco_churn.classification.calibration import ProbabilityCalibrator
-from src.telco_churn.classification.threshold import ThresholdTuner
-from src.telco_churn.model_factory import ModelFactory
-from src.telco_churn.preprocessor import PreprocessorClassification
-from src.telco_churn.trainer import ClassificationTrainer
-from src.telco_churn.tuning import LGBMTuner, KNNTuner
+from src.telco_churn.postprocessing.calibration import ProbabilityCalibrator
+from src.telco_churn.postprocessing.threshold import ThresholdTuner
+from src.telco_churn.models.model_factory import ModelFactory
+from src.telco_churn.pipelines.preprocessor import PreprocessorClassification
+from src.telco_churn.pipelines.trainer import ClassificationTrainer
+from src.telco_churn.pipelines.tuning import LGBMTuner, KNNTuner
 from src.telco_churn.utils import make_json_serializable
 from src.telco_churn.visualisation import plot_roc_curve, plot_pr_curve, plot_threshold_metrics, plot_confusion_matrix
 
@@ -41,13 +41,13 @@ def train_and_select_model(
     all_metrics = {}
 
     for model_name in config.models_classification:
-        print(f"\n=== Training model: {model_name} ===")
+        print(f"\n=== Training models: {model_name} ===")
         calibrator = None
         best_params = None
 
         model = ModelFactory.create_model(config=config, model_name=model_name, task_type="churn_classification")
         preprocessor = PreprocessorClassification(config)
-        pipeline = Pipeline([("preprocessor", preprocessor), ("model", model)])
+        pipeline = Pipeline([("preprocessor", preprocessor), ("models", model)])
 
         # Если модель не baseline, выполняем tuning
         if model_name.lower() == "lightgbm":
@@ -201,14 +201,14 @@ def fit_final_pipeline(
         y_train_val: pd.Series
 ) -> dict:
 
-    print(f"\nTraining final {best_result['model_name']} model")
+    print(f"\nTraining final {best_result['model_name']} models")
     final_model = ModelFactory.create_model(config=config, model_name=best_result["model_name"],
                                             task_type="churn_classification")
     if best_result["params"] is not None:
         final_model.set_params(**best_result["params"])
 
     final_preprocessor = PreprocessorClassification(config)
-    final_pipeline = Pipeline([("preprocessor", final_preprocessor), ("model", final_model)])
+    final_pipeline = Pipeline([("preprocessor", final_preprocessor), ("models", final_model)])
 
     X_fit, X_holdout, y_fit, y_holdout = train_test_split(
         X_train_val,
@@ -226,7 +226,7 @@ def fit_final_pipeline(
         random_state=config.random_state
     )
 
-    final_pipeline.fit(X_fit, y_fit) # model intentionally trained on X_fit to preserve calibration validity
+    final_pipeline.fit(X_fit, y_fit) # models intentionally trained on X_fit to preserve calibration validity
 
     final_calibrator = None
 
