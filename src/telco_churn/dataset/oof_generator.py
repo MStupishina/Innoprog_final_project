@@ -27,14 +27,14 @@ class OOFPChurnGenerator:
         self,
         train_val_df: pd.DataFrame,
         test_df: pd.DataFrame,
-        best_pipeline,        # лучший пайплайн
-        best_calibrator,      # калибратор или None (для LogReg)
+        final_pipeline: Pipeline,        # лучший пайплайн
+        final_calibrator: ProbabilityCalibrator | None,      # калибратор или None (для LogReg)
     ) -> None:
         """
         Запускает OOF-цикл, собирает датасет с p_churn и сохраняет его.
         """
-        oof_proba = self._compute_oof(train_val_df, best_pipeline)
-        test_proba = self._compute_test(test_df, best_pipeline, best_calibrator)
+        oof_proba = self._compute_oof(train_val_df, final_pipeline)
+        test_proba = self._compute_test(test_df, final_pipeline, final_calibrator)
 
         # Собираем итоговый датасет
         tv = train_val_df.copy().reset_index(drop=True)
@@ -60,8 +60,8 @@ class OOFPChurnGenerator:
         Препроцессор обучается заново на каждом фолде — без утечки.
         """
 
-        X_tv = train_val_df.drop(columns=[self.config.target_column])
-        y_tv = train_val_df[self.config.target_column]
+        X_tv = train_val_df.drop(columns=[self.config.target_column_classification])
+        y_tv = train_val_df[self.config.target_column_classification]
         y_tv = encode_target(y_tv, self.config.yes_no_map)
 
         oof_proba = np.zeros(len(train_val_df))
@@ -117,7 +117,7 @@ class OOFPChurnGenerator:
         Считает p_churn для test финальной моделью.
         Финальная модель обучена на train_val — test она не видела.
         """
-        X_test = test_df.drop(columns=[self.config.target_column])
+        X_test = test_df.drop(columns=[self.config.target_column_classification])
 
         if best_calibrator is not None:
             return self._get_positive_class_proba(best_calibrator, X_test)

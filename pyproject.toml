@@ -8,6 +8,7 @@ dependencies = [
     "lightgbm>=4.6.0",
     "matplotlib>=3.10.9",
     "optuna>=4.9.0",
+    "optuna-integration[lightgbm]>=4.9.0",
     "pandas>=3.0.3",
     "scikit-learn>=1.8.0",
     "seaborn>=0.13.2",

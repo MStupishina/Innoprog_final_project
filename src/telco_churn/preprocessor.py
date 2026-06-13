@@ -8,8 +8,10 @@ from sklearn.utils.validation import check_is_fitted
 
 from configs.telco_churn_config import Config
 
+
 class PreprocessorClassification(BaseEstimator, TransformerMixin):
     """Класс для preprocessing'a данных """
+
     def __init__(self, config: Config):
         self.config = config
         self.binary_columns = config.binary_columns
@@ -22,7 +24,10 @@ class PreprocessorClassification(BaseEstimator, TransformerMixin):
         """Проверка полноты признаков"""
         extra_columns = set(X.columns) - set(self.feature_columns)
         missing_columns = set(self.feature_columns) - set(X.columns)
-        if extra_columns:
+
+        ignored_columns = {"customerID", "TotalCharges"}  # TotalCharges=monthlyCharges*tenure
+        unexpected_extra = extra_columns - ignored_columns
+        if unexpected_extra:
             warnings.warn(f"Лишние признаки не будут учтены: {extra_columns}")
         if missing_columns:
             raise ValueError(f"Не хватает признаков: {missing_columns}")
@@ -85,5 +90,3 @@ class PreprocessorClassification(BaseEstimator, TransformerMixin):
             X_array,
             X.index
         )
-
-

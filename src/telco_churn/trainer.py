@@ -30,7 +30,7 @@ class ClassificationTrainer:
         y_proba: np.ndarray, threshold = 0.5) -> Dict[str, Any]:
         y_pred = (y_proba >= threshold).astype(int)
         metrics = {
-            "accuracy": accuracy_score(y_true, y_pred, zero_division=0),
+            "accuracy": accuracy_score(y_true, y_pred),
             "precision": precision_score(y_true, y_pred, zero_division=0),
             "recall": recall_score(y_true, y_pred, zero_division=0),
             "f1": f1_score(y_true, y_pred, zero_division=0),

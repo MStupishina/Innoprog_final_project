@@ -6,6 +6,7 @@ from optuna.integration import LightGBMPruningCallback
 from lightgbm import early_stopping, log_evaluation
 from sklearn import clone
 from sklearn.metrics import roc_auc_score, f1_score
+from sklearn.model_selection import StratifiedKFold
 from sklearn.pipeline import Pipeline
 
 from configs.telco_churn_config import Config
@@ -18,6 +19,7 @@ class LGBMTuner:
         self.n_trials = config.n_trials
         self.metric_name = "auc"
         self.random_state = config.random_state
+        self.n_splits = config.n_splits_clasification
 
     def _suggest_params(self, trial: optuna.Trial) -> Dict[str, Any]:
 
@@ -39,39 +41,57 @@ class LGBMTuner:
         return params
 
 
-    def _objective(self, trial: optuna.Trial, pipeline: Pipeline, X_train: np.ndarray, y_train: np.ndarray,
-                   X_val: np.ndarray, y_val: np.ndarray) -> float:
+    def _objective(self, trial: optuna.Trial, pipeline: Pipeline, X, y) -> float:
 
         params = self._suggest_params(trial)
-        preprocessor = clone(pipeline.named_steps["preprocessor"])
-        X_train_processed = preprocessor.fit_transform(X_train)
-        X_val_processed = preprocessor.transform(X_val)
-        model = clone(pipeline.named_steps["model"])
-        model.set_params(**{
-            k.replace("model__", ""): v
-            for k, v in params.items()
-        })
-        model.fit(
-            X_train_processed,
-            y_train,
-            eval_set=[(X_val_processed, y_val)],
-            eval_metric=self.metric_name,
-            callbacks=[
-                LightGBMPruningCallback(trial, self.metric_name),
-                # Добавляем стандартную раннюю остановку через callback
-                early_stopping(stopping_rounds=50),  # стандартная ранняя остановка
-                log_evaluation(period=0),
-            ])
-        proba = model.predict_proba(X_val_processed)[:, 1]
+        cv = StratifiedKFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
+        fold_scores = []
 
-        return roc_auc_score(y_val, proba)
+        for train_idx, val_idx in cv.split(X, y):
+            X_train_fold = X.iloc[train_idx]
+            X_val_fold = X.iloc[val_idx]
 
-    def tune(self, pipeline: Pipeline, X_train: np.ndarray, y_train: np.ndarray,
-             X_val: np.ndarray, y_val: np.ndarray) -> Dict[str, Any]:
+            y_train_fold = y.iloc[train_idx]
+            y_val_fold = y.iloc[val_idx]
+
+            # Новый preprocessor для каждого fold
+            preprocessor = clone(pipeline.named_steps["preprocessor"])
+
+            X_train_processed = preprocessor.fit_transform(X_train_fold)
+            X_val_processed = preprocessor.transform(X_val_fold)
+
+            # Новая модель для каждого fold
+            model = clone(pipeline.named_steps["model"])
+
+            model.set_params(**{
+                k.replace("model__", ""): v
+                for k, v in params.items()
+            })
+
+            model.fit(
+                X_train_processed,
+                y_train_fold,
+                eval_set=[(X_val_processed, y_val_fold)],
+                eval_metric=self.metric_name,
+                callbacks=[
+                    LightGBMPruningCallback(trial, self.metric_name),
+                    # Добавляем стандартную раннюю остановку через callback
+                    early_stopping(stopping_rounds=50),
+                    log_evaluation(period=0),
+                ])
+
+            y_proba = model.predict_proba(X_val_processed)[:, 1]
+            score = roc_auc_score(y_val_fold,y_proba)
+            fold_scores.append(score)
+
+        return np.mean(fold_scores)
+
+
+    def tune(self, pipeline: Pipeline, X, y) -> Dict[str, Any]:
         sampler = optuna.samplers.TPESampler(seed=self.random_state)
         study = optuna.create_study(direction="maximize", sampler=sampler, study_name="lgbm_classification_tuning")
         study.optimize(
-            lambda trial: self._objective(trial, pipeline, X_train, y_train, X_val, y_val),
+            lambda trial: self._objective(trial, pipeline, X, y),
                        n_trials=self.n_trials)
 
         best_params = {f"model__{k}": v for k, v in study.best_params.items()}
@@ -89,6 +109,7 @@ class KNNTuner:
         self.config = config
         self.n_trials = config.n_trials
         self.random_state = config.random_state
+        self.n_splits = config.n_splits_clasification
 
     def _suggest_params(self, trial: optuna.Trial) -> Dict[str, Any]:
         params = {
@@ -100,23 +121,36 @@ class KNNTuner:
         }
         return params
 
-    def _objective(self, trial: optuna.Trial, pipeline: Pipeline, X_train: np.ndarray, y_train: np.ndarray,
-                   X_val: np.ndarray, y_val: np.ndarray) -> float:
+    def _objective(self, trial: optuna.Trial, pipeline: Pipeline, X, y) -> float:
         params = self._suggest_params(trial)
-        trial_pipeline = clone(pipeline)
-        trial_pipeline.set_params(**params)
-        trial_pipeline.fit(X_train, y_train)
-        y_proba = trial_pipeline.predict_proba(X_val)[:, 1]
-        y_pred = (y_proba >= 0.5).astype(int)
+        cv = StratifiedKFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
 
-        return f1_score(y_val, y_pred)
+        fold_scores = []
 
-    def tune(self, pipeline: Pipeline, X_train: np.ndarray, y_train: np.ndarray,
-             X_val: np.ndarray, y_val: np.ndarray) -> Dict[str, Any]:
+        for train_idx, val_idx in cv.split(X, y):
+            X_train_fold = X.iloc[train_idx]
+            X_val_fold = X.iloc[val_idx]
+
+            y_train_fold = y.iloc[train_idx]
+            y_val_fold = y.iloc[val_idx]
+
+            trial_pipeline = clone(pipeline)
+            trial_pipeline.set_params(**params)
+            trial_pipeline.fit(X_train_fold, y_train_fold)
+
+            y_proba = trial_pipeline.predict_proba(X_val_fold)[:, 1]
+            y_pred = (y_proba >= 0.5).astype(int)
+
+            score = f1_score(y_val_fold, y_pred)
+            fold_scores.append(score)
+
+        return np.mean(fold_scores)
+
+    def tune(self, pipeline: Pipeline, X, y) -> Dict[str, Any]:
         sampler = optuna.samplers.TPESampler(seed=self.random_state)
         study = optuna.create_study(direction="maximize", sampler=sampler, study_name="knn_classification_tuning")
-        study.optimize(lambda trial: self._objective(trial, pipeline, X_train, y_train, X_val, y_val),
+        study.optimize(lambda trial: self._objective(trial, pipeline, X, y),
                        n_trials=self.n_trials)
-        best_params = {f"model__{k}": v for k, v in study.best_params.items()}
+        best_params = study.best_params
         print("Best KNN params:", best_params)
         return best_params
