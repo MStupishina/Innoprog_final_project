@@ -8,10 +8,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 @dataclass
 class Config:
     # Data
-    raw_data_path: Path = BASE_DIR / "data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv"
-    processed_data_dir: Path = BASE_DIR / "data/processed"
+    raw_data_path: Path = BASE_DIR / "datasets/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv"
+    processed_data_dir: Path = BASE_DIR / "datasets/processed"
     artifacts_dir: Path = BASE_DIR / "artifacts"
-    p_churn_data_path: Path = BASE_DIR / "data/processed/with_p_churn.csv"
+    p_churn_data_path: Path = BASE_DIR / "datasets/processed/with_p_churn.csv"
 
     target_column_classification: str = "Churn"
     target_column_value: str = "customer_value"

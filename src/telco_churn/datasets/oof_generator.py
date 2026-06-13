@@ -8,13 +8,13 @@ from sklearn.pipeline import Pipeline
 
 from configs.telco_churn_config import Config
 from src.telco_churn.postprocessing.calibration import ProbabilityCalibrator
-from src.telco_churn.data.encode_target import encode_target
+from src.telco_churn.datasets.encode_target import encode_target
 from src.telco_churn.pipelines.preprocessor import PreprocessorClassification
 
 
 class OOFPChurnGenerator:
     """
-    Генерирует честные вероятности оттока (p_churn) без data leakage через Out-Of-Fold предсказания.
+    Генерирует честные вероятности оттока (p_churn) без datasets leakage через Out-Of-Fold предсказания.
     Для train_val: каждый пример получает p_churn от модели, которая его НЕ видела при обучении (OOF по StratifiedKFold).
     Для test: p_churn от финальной модели, обученной на всём train_val.
     Результат сохраняется в config.p_churn_data_path для использования дальше.
