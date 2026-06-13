@@ -90,3 +90,9 @@ class PreprocessorClassification(BaseEstimator, TransformerMixin):
             X_array,
             X.index
         )
+
+class PreprocessorRegression(PreprocessorClassification):
+    def __init__(self, config: Config):
+        super().__init__(config)
+        self.numeric_columns = config.numeric_columns_regression # исключаем MonthlyCharges из числовых признаков
+        self.feature_columns = self.binary_columns + self.category_columns + self.numeric_columns

@@ -14,6 +14,7 @@ class Config:
     p_churn_data_path: Path = BASE_DIR / "data/processed/with_p_churn.csv"
 
     target_column_classification: str = "Churn"
+    target_column_value: str = "customer_value"
 
     test_size: float = 0.2
     val_size: float = 0.25  # доля validation от train_val
@@ -44,6 +45,11 @@ class Config:
     numeric_columns: List[str] = field(default_factory=lambda: [
         "tenure",
         "MonthlyCharges",
+        "SeniorCitizen",  # по смыслу булевый признак, но уже сохранен числом
+    ])
+
+    numeric_columns_regression: List[str] = field(default_factory=lambda:[
+        "tenure",
         "SeniorCitizen",  # по смыслу булевый признак, но уже сохранен числом
     ])
 
@@ -88,6 +94,7 @@ class Config:
     # Tunning
     n_trials: int = 10
     n_splits_clasification: int = 5
+    n_splits_regression: int = 5
 
     # OOF settings
     oof_n_splits: int = 5  # число фолдов в OOF
