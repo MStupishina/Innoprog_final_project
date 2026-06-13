@@ -8,7 +8,7 @@ from sklearn.pipeline import Pipeline
 
 from configs.telco_churn_config import Config
 from src.telco_churn.classification.calibration import ProbabilityCalibrator
-from src.telco_churn.dataset.encode_target_churn import encode_target
+from src.telco_churn.dataset.encode_target import encode_target
 from src.telco_churn.preprocessor import PreprocessorClassification
 
 
