@@ -138,7 +138,7 @@ def plot_threshold_metrics(y_true, y_proba, model_name="models", output_dir=None
     best_idx = np.argmax(f1s)
     best_threshold = thresholds[best_idx]
 
-    fig, ax1 = plt.subplots(figsize=(10, 6))
+    fig, ax1 = plt.subplots(figsize=(8, 6))
 
     # Левая ось Y (Количество ошибок FP / FN)
     color1 = 'tab:red'
@@ -169,7 +169,14 @@ def plot_threshold_metrics(y_true, y_proba, model_name="models", output_dir=None
     # Собираем легенду с обеих осей
     lines = [l1, l2, l3, l4, l5, l6]
     labels = [l.get_label() for l in lines]
-    ax1.legend(lines, labels, loc='center right', bbox_to_anchor=(1.15, 0.5))
+    ax1.legend(
+        lines,
+        labels,
+        loc='upper center',
+        bbox_to_anchor=(0.5, -0.12),
+        ncol=3,
+        frameon=True
+    )
 
     ax1.set_title(f"Metrics vs Threshold ({model_name})")
     plt.tight_layout()
@@ -193,3 +200,5 @@ def plot_threshold_metrics(y_true, y_proba, model_name="models", output_dir=None
         "f1s": f1s,
         "best_threshold": best_threshold,
     }
+
+# === Regression ===

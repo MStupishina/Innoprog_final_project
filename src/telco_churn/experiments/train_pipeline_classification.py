@@ -45,7 +45,7 @@ def main():
         y_val=y_val,
         X_test=X_test,
         y_test=y_test,
-        selection_metric="roc_auc",
+        selection_metric="pr_auc",
         artifact_path=artifact_path
     )
 
