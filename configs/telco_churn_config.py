@@ -8,16 +8,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 @dataclass
 class Config:
     # Data
-    raw_data_path: Path = BASE_DIR / "datasets/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv"
-    processed_data_dir: Path = BASE_DIR / "datasets/processed"
+    raw_data_path: Path = BASE_DIR / "data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv"
+    processed_data_dir: Path = BASE_DIR / "data/processed"
     artifacts_dir: Path = BASE_DIR / "artifacts"
-    p_churn_data_path: Path = BASE_DIR / "datasets/processed/with_p_churn.csv"
+    p_churn_data_path: Path = BASE_DIR / "data/processed/with_p_churn.csv"
 
     target_column_classification: str = "Churn"
     target_column_value: str = "customer_value"
 
     test_size: float = 0.2
-    val_size: float = 0.25  # доля validation от train_val
+    val_size: float = 0.35  # доля validation от train_val
     random_state: int = 42
 
     # Features
@@ -40,12 +40,12 @@ class Config:
         "StreamingMovies",
         "Contract",
         "PaymentMethod",
+        "SeniorCitizen",
     ])
 
     numeric_columns: List[str] = field(default_factory=lambda: [
         "tenure",
         "MonthlyCharges",
-        "SeniorCitizen",  # по смыслу булевый признак, но уже сохранен числом
     ])
 
     numeric_columns_regression: List[str] = field(default_factory=lambda:[
@@ -93,7 +93,7 @@ class Config:
 
     # Tunning
     n_trials: int = 10
-    n_splits_clasification: int = 5
+    n_splits_clasification: int = 3
     n_splits_regression: int = 5
 
     # OOF settings

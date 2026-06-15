@@ -169,7 +169,7 @@ def plot_threshold_metrics(y_true, y_proba, model_name="models", output_dir=None
     # Собираем легенду с обеих осей
     lines = [l1, l2, l3, l4, l5, l6]
     labels = [l.get_label() for l in lines]
-    ax1.legend(lines, labels, loc='center right', bbox_to_anchor=(1.65, 0.5))
+    ax1.legend(lines, labels, loc='center right', bbox_to_anchor=(1.15, 0.5))
 
     ax1.set_title(f"Metrics vs Threshold ({model_name})")
     plt.tight_layout()

@@ -9,7 +9,7 @@ from sklearn.utils.validation import check_is_fitted
 from configs.telco_churn_config import Config
 
 
-class PreprocessorClassification(BaseEstimator, TransformerMixin):
+class Preprocessor(BaseEstimator, TransformerMixin):
     """Класс для preprocessing'a данных """
 
     def __init__(self, config: Config):
@@ -64,7 +64,7 @@ class PreprocessorClassification(BaseEstimator, TransformerMixin):
             index=X_index
         )
 
-    def fit(self, X: pd.DataFrame, y=None) -> "PreprocessorClassification":
+    def fit(self, X: pd.DataFrame, y=None) -> "Preprocessor":
         X = self._prepare_input(X)
 
         self.preprocessor = ColumnTransformer(
@@ -90,9 +90,3 @@ class PreprocessorClassification(BaseEstimator, TransformerMixin):
             X_array,
             X.index
         )
-
-class PreprocessorRegression(PreprocessorClassification):
-    def __init__(self, config: Config):
-        super().__init__(config)
-        self.numeric_columns = config.numeric_columns_regression # исключаем MonthlyCharges из числовых признаков
-        self.feature_columns = self.binary_columns + self.category_columns + self.numeric_columns
