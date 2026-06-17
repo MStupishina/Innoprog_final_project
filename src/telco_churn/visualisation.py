@@ -201,4 +201,190 @@ def plot_threshold_metrics(y_true, y_proba, model_name="models", output_dir=None
         "best_threshold": best_threshold,
     }
 
+
 # === Regression ===
+def plot_model_comparison(
+        results: dict,
+        output_dir: Path = None,
+        show_plot: bool = True
+):
+    """Сравнение моделей по CV метрикам"""
+
+    model_names = list(results.keys())
+    mae_scores = [results[m]["cv"]["summary"]["MAE"] for m in model_names]
+    rmse_scores = [results[m]["cv"]["summary"]["RMSE"] for m in model_names]
+
+    x = np.arange(len(model_names))
+    width = 0.35
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    ax.bar(x - width / 2, mae_scores, width, label="MAE")
+    ax.bar(x + width / 2, rmse_scores, width, label="RMSE")
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(model_names)
+
+    ax.set_ylabel("Metric value")
+    ax.set_title("Model Comparison (CV Metrics)")
+    ax.legend()
+
+    plt.tight_layout()
+
+    if output_dir:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        save_path = output_dir / "model_comparison.png"
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        print(f"Saved: {save_path}")
+
+    if show_plot:
+        plt.show()
+
+    plt.close()
+
+
+def plot_cv_boxplot(
+        results: dict,
+        metric_name: str = "RMSE",
+        output_dir: Path = None,
+        show_plot: bool = True
+):
+    """Строит boxplot метрики по CV folds для всех моделей"""
+    model_names = []
+    metric_values = []
+    for model_name, model_results in results.items():
+        folds = model_results["cv"]["folds"]
+        values = [fold[metric_name] for fold in folds]
+        model_names.append(model_name)
+        metric_values.append(values)
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.boxplot(metric_values, tick_labels=model_names)
+    ax.set_title(f"{metric_name} Distribution Across CV Folds")
+    ax.set_ylabel(metric_name)
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    if output_dir:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        save_path = output_dir / f"cv_{metric_name.lower()}_boxplot.png"
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    if show_plot:
+        plt.show()
+    plt.close()
+
+
+def plot_actual_vs_predicted(
+        y_true,
+        y_pred,
+        model_name="model",
+        output_dir=None,
+        show_plot=True
+):
+    """Scatter plot: Actual vs Predicted"""
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.scatter(y_true, y_pred, alpha=0.5)
+    min_val = min(np.min(y_true), np.min(y_pred))
+    max_val = max(np.max(y_true), np.max(y_pred))
+    ax.plot([min_val, max_val], [min_val, max_val], linestyle="--", linewidth=2)
+    ax.set_xlabel("Actual")
+    ax.set_ylabel("Predicted")
+    ax.set_title(f"{model_name}: Actual vs Predicted")
+    plt.tight_layout()
+    if output_dir:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        save_path = Path(output_dir) / f"{model_name}_actual_vs_predicted.png"
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    if show_plot:
+        plt.show()
+    plt.close()
+
+def plot_residuals(
+        y_true,
+        y_pred,
+        model_name="model",
+        output_dir=None,
+        show_plot=True
+):
+    """Residual plot"""
+    residuals = y_true - y_pred
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.scatter(y_pred, residuals, alpha=0.5)
+    ax.axhline(0,linestyle="--",linewidth=2)
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("Residual (Actual - Predicted)")
+    ax.set_title(f"{model_name}: Residual Plot")
+    plt.tight_layout()
+    if output_dir:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        save_path = Path(output_dir) / f"{model_name}_residuals.png"
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    if show_plot:
+        plt.show()
+    plt.close()
+
+def plot_error_by_quantiles(
+        y_true,
+        y_pred,
+        n_quantiles=5,
+        model_name="model",
+        output_dir=None,
+        show_plot=True
+):
+    """MAE по квантилям таргета"""
+    df = pd.DataFrame({
+        "actual": y_true,
+        "predicted": y_pred
+})
+    df["abs_error"] = (df["actual"] - df["predicted"]).abs()
+    df["quantile"] = pd.qcut(
+        df["actual"],
+        q=n_quantiles,
+        labels=[f"Q{i + 1}" for i in range(n_quantiles)])
+    mae_by_quantile = df.groupby("quantile")["abs_error"].mean()
+    fig, ax = plt.subplots(figsize=(8, 6))
+    mae_by_quantile.plot(kind="bar",ax=ax)
+    ax.set_title(f"{model_name}: MAE by Target Quantile")
+    ax.set_xlabel("Target Quantile")
+    ax.set_ylabel("Mean Absolute Error")
+    plt.tight_layout()
+    if output_dir:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        save_path = Path(output_dir) / f"{model_name}_quantile_mae.png"
+        plt.savefig(save_path,dpi=300,bbox_inches="tight")
+    if show_plot:
+        plt.show()
+    plt.close()
+
+
+def plot_feature_importance(
+        model,
+        feature_names,
+        top_n=15,
+        model_name="model",
+        output_dir=None,
+        show_plot=True
+):
+    """Top-N feature importance"""
+    importance_df = pd.DataFrame({
+        "feature": feature_names,
+        "importance": model.feature_importances_
+    })
+    importance_df = (
+        importance_df
+        .sort_values(
+            "importance",
+            ascending=False
+        )
+        .head(top_n)
+        .sort_values("importance")
+    )
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.barh(importance_df["feature"],importance_df["importance"])
+    ax.set_title(f"{model_name}: Feature Importance")
+    plt.tight_layout()
+    if output_dir:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        save_path = Path(output_dir) / f"{model_name}_feature_importance.png"
+        plt.savefig(save_path,dpi=300,bbox_inches="tight")
+    if show_plot:
+        plt.show()
+    plt.close()

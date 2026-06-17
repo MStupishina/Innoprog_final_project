@@ -88,7 +88,8 @@ def cross_validation(
 
     return {
         "summary": cv_metrics,
-        "folds": fold_metrics}
+        "folds": fold_metrics
+    }
 
 
 def train_and_select_model(
