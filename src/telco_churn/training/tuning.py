@@ -4,11 +4,10 @@ import numpy as np
 import optuna
 import pandas as pd
 from optuna.integration import LightGBMPruningCallback
-from lightgbm import early_stopping, log_evaluation, LGBMRegressor
+from lightgbm import early_stopping, log_evaluation
 from sklearn import clone
-from sklearn.metrics import roc_auc_score, f1_score, mean_squared_error
+from sklearn.metrics import roc_auc_score, mean_squared_error
 from sklearn.model_selection import StratifiedKFold, KFold
-from sklearn.neural_network import MLPRegressor
 from sklearn.pipeline import Pipeline
 
 from configs.telco_churn_config import Config

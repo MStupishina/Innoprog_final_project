@@ -1,8 +1,12 @@
+import json
+from pathlib import Path
 from typing import Any
 
+import joblib
 import numpy as np
 import pandas as pd
 from sklearn import clone
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error
 from sklearn.model_selection import KFold
 from sklearn.pipeline import Pipeline
 
@@ -11,6 +15,9 @@ from src.telco_churn.models.model_factory import ModelFactory
 from src.telco_churn.preprocessor import Preprocessor
 from src.telco_churn.training.trainer import RegressionTrainer
 from src.telco_churn.training.tuning import MLPRegressorTuner, LGBMRegressorTuner
+from src.telco_churn.utils import make_json_serializable
+from src.telco_churn.visualisation import plot_model_comparison, plot_cv_boxplot, plot_error_by_quantiles, \
+    plot_residuals, plot_actual_vs_predicted
 
 
 def build_pipeline(
@@ -32,8 +39,8 @@ def tune_pipeline_if_needed(
         config: Config,
         model_name: str,
         pipeline: Pipeline,
-        X_train,
-        y_train,
+        X_train: pd.DataFrame,
+        y_train: pd.Series,
 ) -> dict[str, Any]:
     model_name = model_name.lower()
     tuner_map = {"lightgbm": LGBMRegressorTuner, "mlp": MLPRegressorTuner}
@@ -56,7 +63,7 @@ def cross_validation(
         X_train: pd.DataFrame,
         y_train: pd.Series,
         model_name: str
-):
+) -> dict[str, Any]:
     kf = KFold(n_splits=config.n_splits_a2, shuffle=True, random_state=config.random_state)
     fold_metrics = []
 
@@ -92,12 +99,62 @@ def cross_validation(
     }
 
 
+def evaluate_best_model(
+        pipeline: Pipeline,
+        X_test: pd.DataFrame,
+        y_test: pd.Series,
+) -> tuple[dict, np.ndarray]:
+    y_pred = pipeline.predict(X_test)
+
+    metrics = {
+        "MAE": mean_absolute_error(y_test, y_pred),
+        "RMSE": root_mean_squared_error(y_test, y_pred)
+    }
+
+    return metrics, y_pred
+
+
+def visualise_regression_models(
+        results: dict[str, Any],
+        plot_dir: Path,
+        y_test: pd.Series,
+        y_pred: np.ndarray,
+        best_model_name: str,
+):
+    plot_model_comparison(results, plot_dir)
+
+    plot_cv_boxplot(results, metric_name="RMSE", output_dir=plot_dir)
+
+    plot_actual_vs_predicted(
+        y_test,
+        y_pred,
+        model_name=best_model_name,
+        output_dir=plot_dir
+    )
+
+    plot_residuals(
+        y_test,
+        y_pred,
+        model_name=best_model_name,
+        output_dir=plot_dir
+    )
+
+    plot_error_by_quantiles(
+        y_test,
+        y_pred,
+        model_name=best_model_name,
+        output_dir=plot_dir
+    )
+
+
 def train_and_select_model(
         config: Config,
         X_train: pd.DataFrame,
         y_train: pd.Series,
-
-):
+        X_test: pd.DataFrame,
+        y_test: pd.Series,
+        artifact_path: Path,
+) -> dict[str, Any]:
     results = {}
 
     best_pipeline = None
@@ -134,9 +191,41 @@ def train_and_select_model(
             best_pipeline = clone(pipeline)
             best_pipeline.fit(X_train, y_train)
 
+    if best_pipeline is None or best_model_name is None:
+        raise ValueError("Модели не обучены")
+
     print(f"\n=== Best Regression Model: {best_model_name} with CV RMSE {best_rmse:.4f} ===")
+
+    test_metrics, y_pred = evaluate_best_model(
+        pipeline=best_pipeline,
+        X_test=X_test,
+        y_test=y_test,
+    )
+
+    results[best_model_name]["test"] = test_metrics
+
+    visualise_regression_models(
+        results=results,
+        plot_dir=artifact_path,
+        y_test=y_test,
+        y_pred=y_pred,
+        best_model_name=best_model_name
+    )
+
     return {
         "best_pipeline": best_pipeline,
         "best_model_name": best_model_name,
-        "results": results
+        "results": results,
     }
+
+
+def save_artifacts(
+        artifact_path: Path,
+        best_results: dict[str, Any],
+) -> None:
+    best_model_name = best_results["best_model_name"].lower()
+
+    with open(artifact_path / "metrics.json", "w") as f:
+        json.dump(make_json_serializable(best_results["results"]), f, indent=4)
+
+    joblib.dump(best_results["best_pipeline"], artifact_path / f"{best_model_name}_pipeline.joblib")
