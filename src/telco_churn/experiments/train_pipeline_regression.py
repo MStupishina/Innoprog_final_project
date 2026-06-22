@@ -1,7 +1,15 @@
+import warnings
+
 from configs.telco_churn_config import Config
 from src.telco_churn.datasets.dataset_loader import DatasetLoaderRegression
 from src.telco_churn.pipelines.regression_pipeline_steps import train_and_select_model, save_artifacts
 
+# Подавляем предупреждения от LightGBM+Optuna
+warnings.filterwarnings(
+    "ignore",
+    category=UserWarning,
+    module="optuna_integration.lightgbm"
+)
 
 def main():
     config = Config()
@@ -31,3 +39,6 @@ def main():
         artifact_path=artifacts_path,
         best_results=best_results
     )
+
+if __name__ == "__main__":
+    main()

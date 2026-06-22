@@ -3,7 +3,7 @@ from typing import Dict, Any
 import numpy as np
 import optuna
 import pandas as pd
-from optuna.integration import LightGBMPruningCallback
+from optuna_integration.lightgbm import LightGBMPruningCallback
 from lightgbm import early_stopping, log_evaluation
 from sklearn import clone
 from sklearn.metrics import roc_auc_score, mean_squared_error
@@ -212,9 +212,9 @@ class LGBMRegressorTuner:
     def tune(self, pipeline: Pipeline, X: pd.DataFrame, y: pd.Series) -> Dict[str, Any]:
         study = optuna.create_study(direction="minimize")  # минимизируем RMSE
         study.optimize(lambda trial: self._objective(trial, pipeline, X, y), n_trials=self.n_trials)
-        print("Best LGBMRegressor params:", study.best_params)
-        return study.best_params
-
+        best_params = {f"model__{k}": v for k, v in study.best_params.items()}
+        print("Best LGBM params:", best_params)
+        return best_params
 
 class MLPRegressorTuner:
     """Подбор гиперпараметров для MLPRegressor с использованием k-fold CV. Оптимизируем RMSE."""
@@ -252,8 +252,8 @@ class MLPRegressorTuner:
 
         # Добавляем параметры, специфичные для обучения (не для Optuna)
         params.update({
-            "early_stopping": True,
-            "validation_fraction": 0.1,
+            "model__early_stopping": True,
+            "model__validation_fraction": 0.1,
         })
 
         cv = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)

@@ -25,10 +25,10 @@ class Preprocessor(BaseEstimator, TransformerMixin):
         extra_columns = set(X.columns) - set(self.feature_columns)
         missing_columns = set(self.feature_columns) - set(X.columns)
 
-        ignored_columns = {"customerID", "TotalCharges"}  # TotalCharges=monthlyCharges*tenure
+        ignored_columns = {"customerID", "TotalCharges", "Churn"}  # TotalCharges=monthlyCharges*tenure
         unexpected_extra = extra_columns - ignored_columns
         if unexpected_extra:
-            warnings.warn(f"Лишние признаки не будут учтены: {extra_columns}")
+            warnings.warn(f"Лишние признаки не будут учтены: {unexpected_extra}")
         if missing_columns:
             raise ValueError(f"Не хватает признаков: {missing_columns}")
 

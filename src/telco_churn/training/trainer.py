@@ -52,7 +52,7 @@ class ClassificationTrainer(BaseTrainer):
         }
         return metrics
 
-class RegressionTrainer:
+class RegressionTrainer(BaseTrainer):
     """Класс для обучения пайплайнов регрессии"""
 
     def evaluate(self, y_true: pd.Series, y_pred: np.ndarray) -> Dict[str, Any]:

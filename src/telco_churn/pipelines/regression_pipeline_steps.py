@@ -64,7 +64,7 @@ def cross_validation(
         y_train: pd.Series,
         model_name: str
 ) -> dict[str, Any]:
-    kf = KFold(n_splits=config.n_splits_a2, shuffle=True, random_state=config.random_state)
+    kf = KFold(n_splits=config.n_splits_regression, shuffle=True, random_state=config.random_state)
     fold_metrics = []
 
     for fold_idx, (train_idx, val_idx) in enumerate(kf.split(X_train), start=1):
@@ -76,21 +76,22 @@ def cross_validation(
         trainer = RegressionTrainer(fold_pipeline)
         trainer.fit(X_tr, y_tr)
 
-        metrics = trainer.evaluate(X_val, y_val)
+        y_pred = trainer.predict(X_val)
+        metrics = trainer.evaluate(y_val, y_pred)
         print(f"Fold {fold_idx}: MAE={metrics['MAE']:.4f}, RMSE={metrics['RMSE']:.4f}")
         fold_metrics.append(metrics)
 
     cv_metrics = {
-        "MAE_mean": np.mean([m["MAE"] for m in fold_metrics]),
+        "MAE": np.mean([m["MAE"] for m in fold_metrics]),
         "MAE_std": np.std([m["MAE"] for m in fold_metrics]),
-        "RMSE_mean": np.mean([m["RMSE"] for m in fold_metrics]),
+        "RMSE": np.mean([m["RMSE"] for m in fold_metrics]),
         "RMSE_std": np.std([m["RMSE"] for m in fold_metrics]),
     }
 
     print(
         f"\nAverage metrics for {model_name}: "
-        f"MAE={cv_metrics['MAE_mean']:.4f} ± {cv_metrics['MAE_std']:.4f}, "
-        f"RMSE={cv_metrics['RMSE_mean']:.4f} ± {cv_metrics['RMSE_std']:.4f}"
+        f"MAE={cv_metrics['MAE']:.4f} ± {cv_metrics['MAE_std']:.4f}, "
+        f"RMSE={cv_metrics['RMSE']:.4f} ± {cv_metrics['RMSE_std']:.4f}"
     )
 
     return {
@@ -184,7 +185,7 @@ def train_and_select_model(
             "best_params": best_params
         }
 
-        current_rmse = cv_results["summary"]["RMSE_mean"]
+        current_rmse = cv_results["summary"]["RMSE"]
         if current_rmse < best_rmse:
             best_rmse = current_rmse
             best_model_name = model_name
