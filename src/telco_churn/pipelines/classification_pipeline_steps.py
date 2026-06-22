@@ -15,7 +15,8 @@ from src.telco_churn.preprocessor import Preprocessor
 from src.telco_churn.training.trainer import ClassificationTrainer
 from src.telco_churn.training.tuning import LGBMTuner, KNNTuner
 from src.telco_churn.utils import make_json_serializable
-from src.telco_churn.visualisation import plot_roc_curve, plot_pr_curve, plot_threshold_metrics, plot_confusion_matrix
+from src.telco_churn.visualisation import plot_roc_curve, plot_pr_curve, plot_threshold_metrics, plot_confusion_matrix, \
+    plot_calibration_curve
 
 
 def build_pipeline(
@@ -235,6 +236,7 @@ def visualise_model(
             model_name=model_name.lower(),
             output_dir=artifact_path
         )
+
     plot_roc_curve(
         y_true=y_test,
         y_proba=test_proba,
@@ -256,6 +258,14 @@ def visualise_model(
         model_name=model_name.lower(),
         class_names=["No Churn", "Churn"],
         output_dir=artifact_path
+    )
+
+    plot_calibration_curve(
+        y_true=y_test,
+        y_proba=test_proba,
+        model_name=model_name,
+        output_dir=artifact_path,
+        show_plot=True
     )
 
 

@@ -34,7 +34,7 @@ class CustomerSegmenter:
         """Считает средние значения признаков для каждого кластера"""
         df_temp = df_original.copy()
         df_temp['Cluster'] = cluster_labels
-
+        total_customers = len(df_temp)
         # Считаем среднее для числовых и моду (самое частое) для категориальных
         profiles = df_temp.groupby('Cluster').agg({
             'MonthlyCharges': 'mean',
@@ -44,6 +44,12 @@ class CustomerSegmenter:
             'Contract': lambda x: x.mode()[0],
             'customer_value': 'mean'
         }).round(2)
+
+        cluster_size = df_temp.groupby("Cluster").size()
+        cluster_share = (cluster_size / total_customers * 100).round(2)
+
+        profiles.insert(0, "Segment Size", cluster_size)
+        profiles.insert(1, "Segment Share (%)", cluster_share)
 
         profiles.rename(columns={'Churn': 'Churn Rate (%)',
                                  'customer_value' : 'Avg Value ($)'}, inplace=True)

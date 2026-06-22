@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
+from sklearn.calibration import CalibrationDisplay
 from sklearn.cluster import KMeans
 from sklearn.metrics import (precision_recall_curve, confusion_matrix, recall_score, precision_score, f1_score,
                              average_precision_score, roc_curve, auc)
@@ -202,6 +203,41 @@ def plot_threshold_metrics(y_true, y_proba, model_name="models", output_dir=None
         "best_threshold": best_threshold,
     }
 
+def plot_calibration_curve(
+        y_true,
+        y_proba,
+        model_name="model",
+        output_dir=None,
+        show_plot=True
+):
+    """Reliability diagram / Calibration curve"""
+
+    fig, ax = plt.subplots(figsize=(7, 5))
+
+    CalibrationDisplay.from_predictions(
+        y_true=y_true,
+        y_prob=y_proba,
+        n_bins=10,
+        strategy="quantile",
+        ax=ax
+    )
+
+    ax.set_title(f"Calibration Curve ({model_name})")
+
+    plt.tight_layout()
+
+    if output_dir:
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        save_path = output_dir / f"{model_name}_calibration_curve.png"
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        print(f"Calibration curve saved to {save_path}")
+
+    if show_plot:
+        plt.show()
+
+    plt.close()
 
 # === Regression ===
 def plot_model_comparison(
