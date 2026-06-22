@@ -48,7 +48,7 @@ class Config:
         "MonthlyCharges",
     ])
 
-    numeric_columns_regression: List[str] = field(default_factory=lambda:[
+    numeric_columns_regression: List[str] = field(default_factory=lambda: [
         "tenure",
         "SeniorCitizen",  # по смыслу булевый признак, но уже сохранен числом
     ])
@@ -99,6 +99,11 @@ class Config:
     # OOF settings
     oof_n_splits: int = 5  # число фолдов в OOF
     oof_cal_size: float = 0.2  # доля от fold train под калибровку
+
+    # Clustering
+    n_components_pca: int = 2
+    n_clusters: int = 4  # количество сегментов для K-Means
+    kmeans_n_init = 10
 
     # Calibrator
     calibrated_models = {"lightgbm", "knn"}

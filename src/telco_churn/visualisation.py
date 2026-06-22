@@ -298,6 +298,7 @@ def plot_actual_vs_predicted(
         plt.show()
     plt.close()
 
+
 def plot_residuals(
         y_true,
         y_pred,
@@ -309,7 +310,7 @@ def plot_residuals(
     residuals = y_true - y_pred
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.scatter(y_pred, residuals, alpha=0.5)
-    ax.axhline(0,linestyle="--",linewidth=2)
+    ax.axhline(0, linestyle="--", linewidth=2)
     ax.set_xlabel("Predicted")
     ax.set_ylabel("Residual (Actual - Predicted)")
     ax.set_title(f"{model_name}: Residual Plot")
@@ -321,6 +322,7 @@ def plot_residuals(
     if show_plot:
         plt.show()
     plt.close()
+
 
 def plot_error_by_quantiles(
         y_true,
@@ -334,7 +336,7 @@ def plot_error_by_quantiles(
     df = pd.DataFrame({
         "actual": y_true,
         "predicted": y_pred
-})
+    })
     df["abs_error"] = (df["actual"] - df["predicted"]).abs()
     df["quantile"] = pd.qcut(
         df["actual"],
@@ -342,7 +344,7 @@ def plot_error_by_quantiles(
         labels=[f"Q{i + 1}" for i in range(n_quantiles)])
     mae_by_quantile = df.groupby("quantile")["abs_error"].mean()
     fig, ax = plt.subplots(figsize=(8, 6))
-    mae_by_quantile.plot(kind="bar",ax=ax)
+    mae_by_quantile.plot(kind="bar", ax=ax)
     ax.set_title(f"{model_name}: MAE by Target Quantile")
     ax.set_xlabel("Target Quantile")
     ax.set_ylabel("Mean Absolute Error")
@@ -350,7 +352,7 @@ def plot_error_by_quantiles(
     if output_dir:
         output_dir.mkdir(parents=True, exist_ok=True)
         save_path = Path(output_dir) / f"{model_name}_quantile_mae.png"
-        plt.savefig(save_path,dpi=300,bbox_inches="tight")
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
     if show_plot:
         plt.show()
     plt.close()
@@ -379,13 +381,71 @@ def plot_feature_importance(
         .sort_values("importance")
     )
     fig, ax = plt.subplots(figsize=(8, 6))
-    ax.barh(importance_df["feature"],importance_df["importance"])
+    ax.barh(importance_df["feature"], importance_df["importance"])
     ax.set_title(f"{model_name}: Feature Importance")
     plt.tight_layout()
     if output_dir:
         output_dir.mkdir(parents=True, exist_ok=True)
         save_path = Path(output_dir) / f"{model_name}_feature_importance.png"
-        plt.savefig(save_path,dpi=300,bbox_inches="tight")
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
     if show_plot:
         plt.show()
     plt.close()
+
+
+# === Clustering ===
+def plot_elbow_method(
+        X: np.ndarray,
+        output_dir: Path,
+        random_state: int,
+        n_init: int,
+        show_plot=True
+):
+    inertias = []
+    k_range = range(2, 8)
+    for k in k_range:
+        km = KMeans(n_clusters=k, random_state=random_state, n_init=n_init)
+        km.fit(X)
+        inertias.append(km.inertia_)
+    plt.figure(figsize=(8, 4))
+    plt.plot(list(k_range), inertias, marker='o')
+    plt.xlabel('Число кластеров')
+    plt.ylabel('Inertia')
+    plt.title('Elbow Method — выбор числа кластеров')
+    plt.xticks(list(k_range))
+    plt.grid(True)
+    if output_dir:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        plt.savefig(output_dir / 'elbow.png', dpi=150, bbox_inches='tight')
+    if show_plot:
+        plt.show()
+    plt.close()
+
+def plot_scatter_2d(
+        X_2d: np.ndarray,
+        labels: np.ndarray,
+        title: str,
+        filename: str,
+        output_dir: Path,
+        show_plot=True
+):
+    """Рисует и сохраняет scatter plot"""
+    plt.figure(figsize=(10, 8))
+    sns.scatterplot(
+        x=X_2d[:, 0], y=X_2d[:, 1],
+        hue=labels,
+        palette="tab10" if len(np.unique(labels)) <= 10 else "viridis",
+        alpha=0.6,
+        legend="full"
+    )
+    plt.title(title)
+    plt.xlabel("Component 1")
+    plt.ylabel("Component 2")
+    plt.grid(True, alpha=0.3)
+    if output_dir:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        plt.savefig(output_dir / filename, dpi=150, bbox_inches='tight')
+    if show_plot:
+        plt.show()
+    plt.close()
+

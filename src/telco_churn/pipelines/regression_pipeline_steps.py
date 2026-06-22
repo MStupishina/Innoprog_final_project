@@ -11,7 +11,7 @@ from sklearn.model_selection import KFold
 from sklearn.pipeline import Pipeline
 
 from configs.telco_churn_config import Config
-from src.telco_churn.models.model_factory import ModelFactory
+from src.telco_churn.model_factory import ModelFactory
 from src.telco_churn.preprocessor import Preprocessor
 from src.telco_churn.training.trainer import RegressionTrainer
 from src.telco_churn.training.tuning import MLPRegressorTuner, LGBMRegressorTuner
