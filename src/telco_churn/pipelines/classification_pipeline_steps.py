@@ -384,7 +384,7 @@ def save_artifacts(
         joblib.dump(final_result["calibrator"], artifact_path / f"{model_name}_calibrator.joblib")
 
     metadata = {
-        "best_model_name": best_result["model_name"],
+        "best_model_name": model_name,
         "threshold": final_result["threshold"],
         "best_params": best_result["params"]
     }

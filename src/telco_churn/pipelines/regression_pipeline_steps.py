@@ -230,3 +230,14 @@ def save_artifacts(
         json.dump(make_json_serializable(best_results["results"]), f, indent=4)
 
     joblib.dump(best_results["best_pipeline"], artifact_path / f"{best_model_name}_pipeline.joblib")
+
+    metadata = {
+        "best_model_name": best_model_name,
+        "best_params": best_results["best_params"]
+    }
+
+    with open(artifact_path / "best_model.json", "w") as f:
+        json.dump(make_json_serializable(metadata), f, indent=4)
+
+    print("\nArtifacts saved successfully")
+
