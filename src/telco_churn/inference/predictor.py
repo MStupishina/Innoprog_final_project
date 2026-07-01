@@ -1,7 +1,5 @@
 import pandas as pd
-
 from configs.telco_churn_config import Config
-
 
 def predict_churn(
         pipeline,
@@ -12,14 +10,13 @@ def predict_churn(
     if calibrator is not None:
         proba = calibrator.predict_proba(X)
     else:
-        proba = pipeline.predict_proba(X)
+        proba = pipeline.predict_proba(X)[:, 1]
 
     pred = (proba >= threshold).astype(int)
     return pd.DataFrame({
         "churn_probability": proba,
         "churn_prediction": pred
     })
-
 
 def predict_value(
         pipeline,
@@ -29,7 +26,6 @@ def predict_value(
         pipeline.predict(X),
         name="predicted_value"
     )
-
 
 def predict_all(
         churn_pipeline,

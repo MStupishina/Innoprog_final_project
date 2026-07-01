@@ -12,6 +12,8 @@ class Config:
     processed_data_dir: Path = BASE_DIR / "data/processed"
     artifacts_dir: Path = BASE_DIR / "artifacts"
     p_churn_data_path: Path = BASE_DIR / "data/processed/with_p_churn.csv"
+    inference_input: Path = BASE_DIR / "data/new_clients.csv"
+    inference_output: Path = BASE_DIR / "reports/predictions/ml_predictions.csv"
 
     target_column_classification: str = "Churn"
     target_column_value: str = "customer_value"
