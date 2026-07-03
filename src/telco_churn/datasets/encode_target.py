@@ -8,5 +8,5 @@ def encode_target_classification(y: pd.Series, mapping: dict) -> pd.Series:
         raise ValueError(f"Неизвестные значения target: {invalid}")
     return mapped.astype(int)
 
-def encode_target_regression(self, y: pd.Series) -> pd.Series:
+def encode_target_regression(y: pd.Series) -> pd.Series:
     return y.astype(float)

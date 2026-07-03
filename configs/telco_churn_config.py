@@ -50,11 +50,6 @@ class Config:
         "MonthlyCharges",
     ])
 
-    numeric_columns_regression: List[str] = field(default_factory=lambda: [
-        "tenure",
-        "SeniorCitizen",  # по смыслу булевый признак, но уже сохранен числом
-    ])
-
     yes_no_map: dict = None
 
     def __post_init__(self):

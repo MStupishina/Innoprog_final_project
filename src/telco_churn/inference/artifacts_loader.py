@@ -5,7 +5,7 @@ from sklearn.pipeline import Pipeline
 
 from configs.telco_churn_config import Config
 
-def load_classification_artifacts(config: Config) -> tuple[Any, Any | None, float]:
+def load_classification_artifacts(config: Config) -> dict:
     artifact_dir = config.artifacts_dir / "classification"
 
     with open(artifact_dir / "best_model.json") as f:
@@ -21,10 +21,10 @@ def load_classification_artifacts(config: Config) -> tuple[Any, Any | None, floa
     )
 
     threshold = metadata["threshold"]
-    return pipeline, calibrator, threshold
+    return {"pipeline": pipeline, "calibrator": calibrator, "threshold": threshold}
 
 
-def load_regression_artifacts(config: Config) -> Pipeline:
+def load_regression_artifacts(config: Config) -> dict:
     artifact_dir = config.artifacts_dir / "value_regression"
 
     with open(artifact_dir / "best_model.json") as f:
@@ -32,5 +32,5 @@ def load_regression_artifacts(config: Config) -> Pipeline:
 
     model_name = metadata["best_model_name"]
     pipeline = load(artifact_dir / f"{model_name}_pipeline.joblib")
-    return pipeline
+    return {"pipeline": pipeline}
 

@@ -35,7 +35,7 @@ def plot_roc_curve(y_true, y_proba, model_name="models", output_dir=None, show_p
         output_dir.mkdir(parents=True, exist_ok=True)
         path = output_dir / f"{model_name}_roc_curve.png"
         plt.savefig(path, dpi=150, bbox_inches="tight")
-        print(f"ROC curve saved to {path}")
+        print(f"ROC-кривая сохранена {path}")
 
     if show_plot:
         plt.show()
@@ -71,7 +71,7 @@ def plot_pr_curve(y_true, y_proba, model_name="models", output_dir=None, show_pl
         output_dir.mkdir(parents=True, exist_ok=True)
         path = output_dir / f"{model_name}_pr_curve.png"
         plt.savefig(path, dpi=150, bbox_inches="tight")
-        print(f"PR curve saved to {path}")
+        print(f"PR-кривая сохранена {path}")
 
     if show_plot:
         plt.show()
@@ -107,7 +107,7 @@ def plot_confusion_matrix(y_true, y_pred, model_name="models", class_names=None,
         output_dir.mkdir(parents=True, exist_ok=True)
         path = output_dir / f"{model_name}_confusion_matrix.png"
         plt.savefig(path, dpi=150, bbox_inches="tight")
-        print(f"Confusion matrix saved to {path}")
+        print(f"Confusion матрица сохранена {path}")
 
     if show_plot:
         plt.show()
@@ -188,7 +188,7 @@ def plot_threshold_metrics(y_true, y_proba, model_name="models", output_dir=None
         output_dir.mkdir(exist_ok=True, parents=True)
         file_path = output_dir / f"{model_name}_threshold_metrics.png"
         plt.savefig(file_path, dpi=150, bbox_inches='tight')
-        print(f"Threshold metrics plot saved to {file_path}")
+        print(f"График с метриками порога сохранен {file_path}")
 
     if show_plot:
         plt.show()
@@ -232,7 +232,7 @@ def plot_calibration_curve(
 
         save_path = output_dir / f"{model_name}_calibration_curve.png"
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
-        print(f"Calibration curve saved to {save_path}")
+        print(f"Кривая калибровки сохранена {save_path}")
 
     if show_plot:
         plt.show()
@@ -272,7 +272,7 @@ def plot_model_comparison(
         output_dir.mkdir(parents=True, exist_ok=True)
         save_path = output_dir / "model_comparison.png"
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
-        print(f"Saved: {save_path}")
+        print(f"Сохранено: {save_path}")
 
     if show_plot:
         plt.show()

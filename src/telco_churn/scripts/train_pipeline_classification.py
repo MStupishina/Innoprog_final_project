@@ -49,10 +49,10 @@ def main():
         artifact_path=artifact_path
     )
 
-    print("\n=== BEST MODEL ===")
-    print(f"Model: {best_result['model_name']}")
-    print(f"Threshold: {best_result['threshold']:.3f}")
-    print(f"Score: {best_result['score']:.4f}")
+    print("\n=== Лучшая модель ===")
+    print(f"Модель: {best_result['model_name']}")
+    print(f"Порог: {best_result['threshold']:.3f}")
+    print(f"Метрика: {best_result['score']:.4f}")
 
     final_result = fit_final_pipeline(
         config=config,

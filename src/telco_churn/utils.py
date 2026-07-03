@@ -19,7 +19,7 @@ def load_data(file_path: str | Path) -> pd.DataFrame:
     else:
         raise ValueError(f"Не поддерживаемый формат файла: {file_path.suffix}")
 
-    print(f"[INFO] Загружен файл: {file_path} | Размер: {df.shape}")
+    print(f"Загружен файл: {file_path} | Размер: {df.shape}")
     return df
 
 
@@ -37,7 +37,7 @@ def save_data(df: pd.DataFrame, file_path: str | Path, index: bool = False) -> N
     else:
         raise ValueError(f"Не поддерживаемый формат файла для сохранения: {file_path.suffix}")
 
-    print(f"[INFO] Данные сохранены в: {file_path} | Размер: {df.shape}")
+    print(f"Данные сохранены в: {file_path} | Размер: {df.shape}")
 
 
 def make_json_serializable(obj):

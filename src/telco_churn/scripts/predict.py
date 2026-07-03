@@ -7,8 +7,8 @@ from src.telco_churn.inference.predictor import predict_all
 
 def main():
     config = Config()
-    cls = load_classification_artifacts()
-    reg = load_regression_artifacts()
+    cls = load_classification_artifacts(config)
+    reg = load_regression_artifacts(config)
 
     df = pd.read_csv(config.inference_input)
 

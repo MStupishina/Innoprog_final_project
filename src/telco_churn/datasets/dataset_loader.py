@@ -12,7 +12,7 @@ class DatasetLoaderClassification:
     def __init__(self, config: Config):
         self.config = config
 
-    def load_and_split_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def load_and_split_data(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """Загрузка и разбиение данных на train/val/test со стратификацией        """
         df = load_data(self.config.raw_data_path)
         y = df[self.config.target_column_classification]

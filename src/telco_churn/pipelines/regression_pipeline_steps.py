@@ -50,7 +50,7 @@ def tune_pipeline_if_needed(
     if tuner_class is None:
         return {}
 
-    print(f"\nTuning {model_name}...")
+    print(f"\nТюнинг {model_name}...")
     tuner = tuner_class(config)
     best_params = tuner.tune(pipeline=pipeline, X=X_train, y=y_train)
 
@@ -89,7 +89,7 @@ def cross_validation(
     }
 
     print(
-        f"\nAverage metrics for {model_name}: "
+        f"\nСредние метрики для {model_name}: "
         f"MAE={cv_metrics['MAE']:.4f} ± {cv_metrics['MAE_std']:.4f}, "
         f"RMSE={cv_metrics['RMSE']:.4f} ± {cv_metrics['RMSE_std']:.4f}"
     )
@@ -195,7 +195,7 @@ def train_and_select_model(
     if best_pipeline is None or best_model_name is None:
         raise ValueError("Модели не обучены")
 
-    print(f"\n=== Best Regression Model: {best_model_name} with CV RMSE {best_rmse:.4f} ===")
+    print(f"\n=== Лучшая модель регрессии: {best_model_name} с CV RMSE {best_rmse:.4f} ===")
 
     test_metrics, y_pred = evaluate_best_model(
         pipeline=best_pipeline,
@@ -212,11 +212,12 @@ def train_and_select_model(
         y_pred=y_pred,
         best_model_name=best_model_name
     )
-
+    best_params = results[best_model_name]["best_params"]
     return {
         "best_pipeline": best_pipeline,
         "best_model_name": best_model_name,
         "results": results,
+        "best_params": best_params,
     }
 
 
@@ -239,5 +240,5 @@ def save_artifacts(
     with open(artifact_path / "best_model.json", "w") as f:
         json.dump(make_json_serializable(metadata), f, indent=4)
 
-    print("\nArtifacts saved successfully")
+    print("\nАртефакты успешно сохранены")
 

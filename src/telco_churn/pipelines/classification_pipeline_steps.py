@@ -65,8 +65,8 @@ def fit_calibrator_and_threshold(
     threshold_tuner = ThresholdTuner()
     model_threshold, threshold_score = threshold_tuner.tune(y_val_thresh, val_proba)
 
-    print("\nBest threshold:", model_threshold)
-    print("Best F1:", threshold_score)
+    print("\nЛучший порог:", model_threshold)
+    print("Лучший F1:", threshold_score)
 
     return {
         "calibrator": calibrator,
@@ -92,7 +92,7 @@ def tune_pipeline_if_needed(
     if tuner_class is None:
         return {}
 
-    print(f"\nTuning {model_name}...")
+    print(f"\nТюнинг {model_name}...")
     tuner = tuner_class(config)
     best_params = tuner.tune(pipeline=pipeline, X=X_train, y=y_train)
 
@@ -122,7 +122,7 @@ def train_and_select_model(
     all_metrics = {}
 
     for model_name in config.models_classification:
-        print(f"\n=== Training: {model_name} ===")
+        print(f"\n=== Обучение: {model_name} ===")
         best_params = None
 
         pipeline = build_pipeline(config=config, model_name=model_name)
@@ -200,13 +200,13 @@ def evaluate_model(
             return calibrator.predict_proba(X)
         return trainer.predict_proba(X)
 
-    print("\nValidation metrics:")
+    print("\nМетрики валидации:")
     val_proba = get_proba(X_val)
     val_metrics = trainer.evaluate(y_true=y_val, y_proba=val_proba, threshold=threshold)
     for metric, value in val_metrics.items():
         print(f"{metric}: {value}")
 
-    print("\nTest metrics:")
+    print("\nМетрики теста:")
     test_proba = get_proba(X_test)
     test_metrics = trainer.evaluate(y_true=y_test, y_proba=test_proba, threshold=threshold)
     for metric, value in test_metrics.items():
@@ -314,7 +314,7 @@ def fit_final_pipeline(
         X_train_val: pd.DataFrame,
         y_train_val: pd.Series
 ) -> dict:
-    print(f"\nTraining final {best_result['model_name']} models")
+    print(f"\nОбучение финальной {best_result['model_name']} модели")
     final_model = ModelFactory.create_model(config=config, model_name=best_result["model_name"],
                                             task_type="churn_classification")
     if best_result["params"] is not None:
@@ -357,8 +357,8 @@ def fit_final_pipeline(
 
     best_threshold, best_f1 = threshold_tuner.tune(y_true=y_threshold, y_proba=threshold_proba)
 
-    print(f"Final threshold: {best_threshold:.3f}")
-    print(f"Final threshold F1: {best_f1:.3f}")
+    print(f"Финальный порог: {best_threshold:.3f}")
+    print(f"F1 при финальном пороге: {best_f1:.3f}")
 
     return {
         "pipeline": final_pipeline,
@@ -392,4 +392,4 @@ def save_artifacts(
     with open(artifact_path / "best_model.json", "w") as f:
         json.dump(make_json_serializable(metadata), f, indent=4)
 
-    print("\nArtifacts saved successfully")
+    print("\nАртефакты успешо сохранены")
