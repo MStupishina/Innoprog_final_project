@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 @dataclass
 class Config:
-    # Data
+    # Данные
     raw_data_path: Path = BASE_DIR / "data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv"
     processed_data_dir: Path = BASE_DIR / "data/processed"
     artifacts_dir: Path = BASE_DIR / "artifacts"
@@ -22,7 +22,7 @@ class Config:
     val_size: float = 0.35  # доля validation от train_val
     random_state: int = 42
 
-    # Features
+    # Признаки
     binary_columns: List[str] = field(default_factory=lambda: [
         "gender",
         "Partner",
@@ -56,7 +56,7 @@ class Config:
         if self.yes_no_map is None:
             self.yes_no_map = {"Yes": 1, "No": 0, "Female": 1, "Male": 0}
 
-    # Models_classification
+    # Модели классификации
     models_classification: List[str] = field(default_factory=lambda: [
         "logistic_regression", "lightgbm", "knn"])
 
@@ -73,7 +73,7 @@ class Config:
     # KNN
     knn_n_neighbors: int = 5
 
-    # Models_regression
+    # Модели регрессии
     models_regression: List[str] = field(default_factory=lambda: ["ridge", "lightgbm", "mlp"])
 
     # Baseline Ridge
