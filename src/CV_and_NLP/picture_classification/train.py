@@ -16,14 +16,10 @@ from src.CV_and_NLP.picture_classification.model import BaselineCNN, get_resnet1
 # ===================================================================
 # Утилиты
 # ===================================================================
-def f1_multi_label(outputs, targets):
-    probs = torch.sigmoid(outputs)
-    preds = (probs > 0.5).cpu().numpy()
-    targets = targets.cpu().numpy()
-
+def f1_calculate(preds, targets):
     return f1_score(
-        targets,
-        preds,
+        targets.cpu().numpy(),
+        preds.cpu().numpy(),
         average="micro",
         zero_division=0
     )
@@ -64,10 +60,11 @@ def plot_curves(history, save_path, title_prefix=""):
 # ===================================================================
 # Один проход обучения
 # ===================================================================
-def train_one_epoch(model, loader, criterion, optimizer, device):
+def train_one_epoch(model, loader, criterion, optimizer, device, config: Config):
     model.train()
     running_loss = 0.0
-    running_f1 = 0.0
+    all_preds = []
+    all_targets = []
 
     for images, targets in tqdm(loader, desc="Train", leave=False):
         images, targets = images.to(device), targets.to(device)
@@ -78,27 +75,41 @@ def train_one_epoch(model, loader, criterion, optimizer, device):
         loss.backward()
         optimizer.step()
 
+        probs = torch.sigmoid(outputs)
+        preds = (probs > config.B1["threshold"])
+        all_preds.append(preds.cpu())
+        all_targets.append(targets.cpu())
         running_loss += loss.item() * images.size(0)
-        running_f1 += f1_multi_label(outputs, targets) * images.size(0)
 
-    return running_loss / len(loader.dataset), running_f1 / len(loader.dataset)
+    all_preds = torch.cat(all_preds)
+    all_targets = torch.cat(all_targets)
+    epoch_f1 = f1_calculate(all_preds, all_targets)
+
+    return running_loss / len(loader.dataset), epoch_f1
 
 
 @torch.no_grad()
-def validate(model, loader, criterion, device):
+def validate(model, loader, criterion, device, config: Config):
     model.eval()
     running_loss = 0.0
-    running_f1 = 0.0
+    all_preds = []
+    all_targets = []
 
     for images, targets in tqdm(loader, desc="Val", leave=False):
         images, targets = images.to(device), targets.to(device)
         outputs = model(images)
         loss = criterion(outputs, targets)
-
         running_loss += loss.item() * images.size(0)
-        running_f1 += f1_multi_label(outputs, targets) * images.size(0)
+        probs = torch.sigmoid(outputs)
+        preds = (probs > config.B1["threshold"])
+        all_preds.append(preds.cpu())
+        all_targets.append(targets.cpu())
 
-    return running_loss / len(loader.dataset), running_f1 / len(loader.dataset)
+    all_preds = torch.cat(all_preds)
+    all_targets = torch.cat(all_targets)
+    epoch_f1 = f1_calculate(all_preds, all_targets)
+
+    return running_loss / len(loader.dataset), epoch_f1
 
 
 # ===================================================================
@@ -114,17 +125,20 @@ def train_model(model, train_loader, val_loader, num_epochs, lr,
 
     save_dir = config.artifacts_B1 / model_name
     save_dir.mkdir(parents=True, exist_ok=True)
+    with open(save_dir / "config.json", "w") as f:
+        json.dump(config.B1, f, indent=2)
 
     history = {"train_loss": [], "val_loss": [], "train_f1": [], "val_f1": []}
     best_val_f1 = 0.0
+    epochs_without_improvement = 0
 
     for epoch in range(1, num_epochs + 1):
         print(f"\n{'=' * 50}")
         print(f"{model_name} — Epoch {epoch}/{num_epochs}")
         print(f"LR: {scheduler.get_last_lr()[0]:.2e}")
 
-        train_loss, train_f1 = train_one_epoch(model, train_loader, criterion, optimizer, device)
-        val_loss, val_f1 = validate(model, val_loader, criterion, device)
+        train_loss, train_f1 = train_one_epoch(model, train_loader, criterion, optimizer, device, config)
+        val_loss, val_f1 = validate(model, val_loader, criterion, device, config)
 
         history["train_loss"].append(round(train_loss, 4))
         history["val_loss"].append(round(val_loss, 4))
@@ -138,14 +152,34 @@ def train_model(model, train_loader, val_loader, num_epochs, lr,
 
         # Сохраняем лучшую модель
         if val_f1 > best_val_f1:
-            best_val_acc = val_f1
+            best_val_f1 = val_f1
             torch.save(model.state_dict(), save_dir / "best_model.pt")
             print(f"  ✓ Saved best model (val_f1={best_val_f1:.4f})")
+            epochs_without_improvement = 0
+        else:
+            epochs_without_improvement += 1
+
+        if epochs_without_improvement >= config.B1["patience"]:
+            print("Early stopping triggered")
+            break
 
     # Сохраняем финальную модель и метрики
-    torch.save(model.state_dict(), save_dir / "last_model.pt")
-    save_metrics(history, save_dir/ "metrics.json")
-    plot_curves(history, save_dir/ "learning_curves.png", f"{model_name} — ")
+    torch.save(
+        {
+            #"epoch": epoch,
+            "best_val_f1": best_val_f1,
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+        },
+        save_dir / "best_model.pt"
+    )
+
+    metrics = {
+        "best_val_f1": best_val_f1,
+        "history": history,
+    }
+    save_metrics(metrics, save_dir / "metrics.json")
+    plot_curves(history, save_dir / "learning_curves.png", f"{model_name} — ")
 
     print(f"\n{'=' * 50}")
     print(f"{model_name} done! Best val_f1 = {best_val_f1:.4f}")
@@ -167,7 +201,7 @@ def main():
     train_transfer = args.transfer or not args.baseline
 
     print(f"Device: {config.device}")
-    train_loader, val_loader = get_dataloaders(config)
+    train_loader, val_loader, test_loader = get_dataloaders(config)
 
     results = {}
 
@@ -176,7 +210,7 @@ def main():
         print("Training BaselineCNN")
         print("=" * 60)
         model = BaselineCNN(config).to(config.device)
-        _, best_acc = train_model(
+        _, best_f1 = train_model(
             model, train_loader, val_loader,
             num_epochs=config.B1["num_epochs_baseline"],
             lr=config.B1["lr_baseline"],
@@ -187,14 +221,25 @@ def main():
             device=config.device,
             config=config,
         )
-        results["baseline_cnn"] = {"best_val_acc": best_acc}
+        results["baseline_cnn"] = {"best_val_f1": best_f1}
+
+        criterion = nn.BCEWithLogitsLoss()
+        model.load_state_dict(torch.load(config.artifacts_B1 / "baseline_cnn" / "best_model.pt"))
+        test_loss, test_f1 = validate(
+            model,
+            test_loader,
+            criterion,
+            config.device,
+            config,
+        )
+        results["baseline_cnn"]["test_f1"] = test_f1
 
     if train_transfer:
         print("\n" + "=" * 60)
         print("Training ResNet18 (Transfer Learning)")
         print("=" * 60)
-        model = get_resnet18(config=config,freeze_backbone=True).to(config.device)
-        _, best_acc = train_model(
+        model = get_resnet18(config=config, freeze_backbone=True).to(config.device)
+        _, best_f1 = train_model(
             model, train_loader, val_loader,
             num_epochs=config.B1["num_epochs_transfer"],
             lr=config.B1["lr_transfer"],
@@ -205,14 +250,26 @@ def main():
             device=config.device,
             config=config,
         )
-        results["resnet18"] = {"best_val_acc": best_acc}
+        results["resnet18"] = {"best_val_f1": best_f1}
+
+        criterion = nn.BCEWithLogitsLoss()
+        model.load_state_dict(torch.load(config.artifacts_B1 / "resnet18" / "best_model.pt"))
+        test_loss, test_f1 = validate(
+            model,
+            test_loader,
+            criterion,
+            config.device,
+            config,
+        )
+
+        results["resnet18"]["test_f1"] = test_f1
 
     # Сводка
     print("\n" + "=" * 60)
     print("RESULTS SUMMARY")
     print("=" * 60)
     for name, r in results.items():
-        print(f"  {name}: best val_acc = {r['best_val_acc']:.4f}")
+        print(f"  {name}: best val_f1 = {r['best_val_f1']:.4f}")
 
 
 if __name__ == "__main__":

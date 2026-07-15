@@ -95,6 +95,12 @@ def get_dataloaders(config: Config, batch_size: int = None, num_workers: int = N
         transform=get_classification_transforms(train=True, config=config),
     )
 
+    test_dataset = VOCMultiLabelDataset(
+        config=config,
+        root=config.voc_dir,
+        image_set="test",
+        transform=get_classification_transforms(train=False,config=config),
+    )
     # Разбиение: 80% train, 20% val
     train_size = int(0.8 * len(full_dataset))
     val_size = len(full_dataset) - train_size
@@ -103,7 +109,7 @@ def get_dataloaders(config: Config, batch_size: int = None, num_workers: int = N
         generator=torch.Generator().manual_seed(config.seed),
     )
 
-    # На валидации — другие трансформации (без аугментаций!)
+    # На валидации — другие трансформации
     val_dataset.dataset = VOCMultiLabelDataset(
         config=config,
         root=config.voc_dir,
@@ -123,7 +129,12 @@ def get_dataloaders(config: Config, batch_size: int = None, num_workers: int = N
         shuffle=False, num_workers=num_workers,
     )
 
-    return train_loader, val_loader
+    test_loader = DataLoader(
+        test_dataset, batch_size=batch_size,
+        shuffle=False, num_workers=num_workers,
+    )
+
+    return train_loader, val_loader, test_loader
 
 
 if __name__ == "__main__":

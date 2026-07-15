@@ -60,7 +60,7 @@ class BaselineCNN(nn.Module):
         x = self.features(x)
         x = self.avgpool(x)
         x = self.classifier(x)
-        return x  # logits, без сигмоиды (она внутри BCEWithLogitsLoss)
+        return x  # logits; sigmoid применяется при вычислении loss или инференсе
 
 
 # ===================================================================
@@ -77,6 +77,10 @@ def get_resnet18(config: Config, num_classes: int = None, freeze_backbone: bool 
 
     model = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
 
+    # Заменяем голову на 20 классов
+    in_features = model.fc.in_features
+    model.fc = nn.Linear(in_features, num_classes)
+
     if freeze_backbone:
         # Замораживаем ВСЕ параметры
         for param in model.parameters():
@@ -84,10 +88,6 @@ def get_resnet18(config: Config, num_classes: int = None, freeze_backbone: bool 
         # Размораживаем только последний классификатор
         for param in model.fc.parameters():
             param.requires_grad = True
-
-    # Заменяем голову на 20 классов
-    in_features = model.fc.in_features
-    model.fc = nn.Linear(in_features, num_classes)
 
     return model
 

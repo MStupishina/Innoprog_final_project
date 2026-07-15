@@ -27,7 +27,7 @@ class Config:
     seed = 42
     torch.manual_seed(seed)
 
-    #B1 параметры
+    # B1 параметры
     B1 = {
         "image_size": 224,
         "batch_size": 32,
@@ -36,17 +36,20 @@ class Config:
         "num_epochs_baseline": 25,
         "num_epochs_transfer": 15,
         "lr_baseline": 0.001,
-        "lr_transfer": 0.001,
+        "lr_transfer": 0.0001,
         "step_size": 7,
         "lr_gamma": 0.1,
         "dropout": 0.5,
         "weight_decay": 1e-4,
+        "threshold": 0.5,
         "classes": [
             "aeroplane", "bicycle", "bird", "boat", "bottle",
             "bus", "car", "cat", "chair", "cow",
             "diningtable", "dog", "horse", "motorbike", "person",
             "pottedplant", "sheep", "sofa", "train", "tvmonitor",
-        ]
+        ],
+        "patience": 5,
+        "train_size": 0.7,
+        "val_size": 0.15,
+        "test_size": 0.15,
     }
-
-
