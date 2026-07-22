@@ -1,7 +1,9 @@
+import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Subset
 from torchvision import transforms
 from torchvision.datasets import VOCDetection
+from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
 
 from configs.cv_and_nlp_config import Config
 
@@ -80,6 +82,19 @@ class VOCMultiLabelDataset(Dataset):
         return image, target
 
 
+def get_targets(dataset):
+    """Возвращает матрицу multilabel targets для всего датасета.
+    Shape:
+    [num_images, num_classes]
+    """
+    targets = []
+    for idx in range(len(dataset)):
+        _, target = dataset[idx]
+        targets.append(target.numpy())
+
+    return np.array(targets)
+
+
 def get_dataloaders(config: Config, batch_size: int = None, num_workers: int = None):
     """
     Возвращает train_loader, val_loader.
@@ -95,30 +110,50 @@ def get_dataloaders(config: Config, batch_size: int = None, num_workers: int = N
         transform=get_classification_transforms(train=True, config=config),
     )
 
-    test_dataset = VOCMultiLabelDataset(
-        config=config,
-        root=config.voc_dir,
-        image_set="test",
-        transform=get_classification_transforms(train=False,config=config),
-    )
-    # Разбиение: 80% train, 20% val
-    train_size = int(0.8 * len(full_dataset))
-    val_size = len(full_dataset) - train_size
-    train_dataset, val_dataset = torch.utils.data.random_split(
-        full_dataset, [train_size, val_size],
-        generator=torch.Generator().manual_seed(config.seed),
-    )
+    targets = get_targets(full_dataset)
+    indices = np.arange(len(full_dataset))
 
-    # На валидации — другие трансформации
-    val_dataset.dataset = VOCMultiLabelDataset(
+    # Разбиение: 70% train, 15% val, 15% test
+    splitter = MultilabelStratifiedShuffleSplit(n_splits=1, test_size=0.3, random_state=config.seed)
+    train_idx, temp_idx = next(splitter.split(indices, targets))
+    temp_targets = targets[temp_idx]
+
+    # Разбиение: 70% train, 15% val, 15% test
+    splitter_test = MultilabelStratifiedShuffleSplit(n_splits=1, test_size=0.5, random_state=config.seed)
+    val_idx_rel, test_idx_rel = next(splitter_test.split(temp_idx, temp_targets))
+    val_idx = temp_idx[val_idx_rel]
+    test_idx = temp_idx[test_idx_rel]
+
+    split_dir = config.artifacts_B1 / "splits"
+    split_dir.mkdir(parents=True, exist_ok=True)
+
+    np.save(split_dir / "train_idx.npy", train_idx)
+    np.save(split_dir / "val_idx.npy", val_idx)
+    np.save(split_dir / "test_idx.npy", test_idx)
+
+    train_dataset_full = VOCMultiLabelDataset(
         config=config,
         root=config.voc_dir,
         image_set="trainval",
-        transform=get_classification_transforms(train=False, config=config),
+        transform=get_classification_transforms(
+            train=True,
+            config=config
+        ),
     )
-    # Переназначаем индексы после замены dataset
-    val_subset_indices = val_dataset.indices
-    val_dataset = torch.utils.data.Subset(val_dataset.dataset, val_subset_indices)
+
+    eval_dataset = VOCMultiLabelDataset(
+        config=config,
+        root=config.voc_dir,
+        image_set="trainval",
+        transform=get_classification_transforms(
+            train=False,
+            config=config
+        ),
+    )
+
+    train_dataset = Subset(train_dataset_full, train_idx)
+    val_dataset = Subset(eval_dataset, val_idx)
+    test_dataset = Subset(eval_dataset, test_idx)
 
     train_loader = DataLoader(
         train_dataset, batch_size=batch_size,
