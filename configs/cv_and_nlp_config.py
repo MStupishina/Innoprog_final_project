@@ -25,7 +25,14 @@ class Config:
 
     # Общие
     seed = 42
-    torch.manual_seed(seed)
+
+    VOC_CLASSES = [
+            "aeroplane", "bicycle", "bird", "boat", "bottle",
+            "bus", "car", "cat", "chair", "cow",
+            "diningtable", "dog", "horse", "motorbike", "person",
+            "pottedplant", "sheep", "sofa", "train", "tvmonitor",
+        ]
+
 
     # B1 параметры
     B1 = {
@@ -42,14 +49,23 @@ class Config:
         "dropout": 0.5,
         "weight_decay": 1e-4,
         "threshold": 0.5,
-        "classes": [
-            "aeroplane", "bicycle", "bird", "boat", "bottle",
-            "bus", "car", "cat", "chair", "cow",
-            "diningtable", "dog", "horse", "motorbike", "person",
-            "pottedplant", "sheep", "sofa", "train", "tvmonitor",
-        ],
+        "classes":VOC_CLASSES,
         "patience": 5,
         "train_size": 0.7,
         "val_size": 0.15,
         "test_size": 0.15,
     }
+
+    # B2 параметры
+    B2 = {
+        "model": "yolov8n.pt",  # nano — быстро, для прототипа
+        "imgsz": 640,
+        "batch": 16,
+        "epochs": 30,
+        "lr0": 0.01,
+        "lrf": 0.01,  # final lr = lr0 * lrf
+        "patience": 10,  # early stopping
+        "conf_threshold": 0.25,  # для инференса
+        "iou_threshold": 0.45,  # NMS
+    }
+

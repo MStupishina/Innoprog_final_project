@@ -12,6 +12,7 @@ from tqdm import tqdm
 from configs.cv_and_nlp_config import Config
 from src.CV_and_NLP.picture_classification.dataset import get_dataloaders
 from src.CV_and_NLP.picture_classification.model import BaselineCNN, get_resnet18
+from src.CV_and_NLP.utils import set_seed
 
 
 # ===================================================================
@@ -185,7 +186,7 @@ def train_model(model, train_loader, val_loader, num_epochs, lr,
         json.dump(config_dict, f, indent=2)
 
     history = {"train_loss": [], "val_loss": [], "train_f1": [], "val_f1": [], "train_auc": [], "val_auc": []}
-    best_val_f1 = 0.0
+    best_val_f1 = -1.0
     best_val_auc = 0.0
     best_epoch = 0
     best_state = copy.deepcopy(model.state_dict())
@@ -234,7 +235,6 @@ def train_model(model, train_loader, val_loader, num_epochs, lr,
             "best_val_f1": best_val_f1,
             "best_val_auc": best_val_auc,
             "model_state_dict": model.state_dict(),
-            "optimizer_state_dict": optimizer.state_dict(),
         },
         save_dir / "best_model.pt"
     )
@@ -257,6 +257,7 @@ def train_model(model, train_loader, val_loader, num_epochs, lr,
 
 def main():
     config = Config()
+    set_seed(config.seed)
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--baseline", action="store_true", help="Train BaselineCNN only")
