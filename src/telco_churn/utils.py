@@ -1,5 +1,7 @@
+import numpy as np
 import pandas as pd
 from pathlib import Path
+
 
 def load_data(file_path: str | Path) -> pd.DataFrame:
     """
@@ -17,8 +19,9 @@ def load_data(file_path: str | Path) -> pd.DataFrame:
     else:
         raise ValueError(f"Не поддерживаемый формат файла: {file_path.suffix}")
 
-    print(f"[INFO] Загружен файл: {file_path} | Размер: {df.shape}")
+    print(f"Загружен файл: {file_path} | Размер: {df.shape}")
     return df
+
 
 def save_data(df: pd.DataFrame, file_path: str | Path, index: bool = False) -> None:
     """
@@ -34,6 +37,20 @@ def save_data(df: pd.DataFrame, file_path: str | Path, index: bool = False) -> N
     else:
         raise ValueError(f"Не поддерживаемый формат файла для сохранения: {file_path.suffix}")
 
-    print(f"[INFO] Данные сохранены в: {file_path} | Размер: {df.shape}")
+    print(f"Данные сохранены в: {file_path} | Размер: {df.shape}")
 
 
+def make_json_serializable(obj):
+    """
+    Преобразует объекты (np.ndarray, pd.Series) в типы, которые JSON умеет сериализовать.
+    """
+    if isinstance(obj, dict):
+        return {k: make_json_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [make_json_serializable(v) for v in obj]
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, pd.Series):
+        return obj.tolist()
+    else:
+        return obj
