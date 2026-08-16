@@ -91,9 +91,9 @@ def train_one_epoch(model, loader, criterion, optimizer, scaler, device, config:
         all_targets.append(targets.detach().cpu())
         running_loss += loss.item() * images.size(0)
 
-    all_preds = torch.cat(all_preds)
-    all_targets = torch.cat(all_targets)
-    all_probs = torch.cat(all_probs)
+    all_preds = torch.cat(all_preds).detach()
+    all_targets = torch.cat(all_targets).detach()
+    all_probs = torch.cat(all_probs).detach()
     epoch_f1 = f1_calculate(all_preds, all_targets)
     try:
         epoch_auc = roc_auc_score(
