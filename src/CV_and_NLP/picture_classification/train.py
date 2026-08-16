@@ -295,6 +295,7 @@ def main():
         checkpoint = torch.load(
             config.artifacts_B1 / "baseline_cnn" / "best_model.pt",
             map_location=config.device,
+            weights_only=False,
         )
         model.load_state_dict(checkpoint["model_state_dict"])
         test_loss, test_f1, test_auc = validate(
@@ -335,6 +336,7 @@ def main():
         checkpoint = torch.load(
             config.artifacts_B1 / "resnet18" / "best_model.pt",
             map_location=config.device,
+            weights_only=False,
         )
         model.load_state_dict(checkpoint["model_state_dict"])
         test_loss, test_f1, test_auc = validate(
