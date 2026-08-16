@@ -86,9 +86,9 @@ def train_one_epoch(model, loader, criterion, optimizer, scaler, device, config:
 
         probs = torch.sigmoid(outputs)
         preds = (probs > config.B1["threshold"])
-        all_probs.append(probs.cpu())
-        all_preds.append(preds.cpu())
-        all_targets.append(targets.cpu())
+        all_probs.append(probs.detach().cpu())
+        all_preds.append(preds.detach().cpu())
+        all_targets.append(targets.detach().cpu())
         running_loss += loss.item() * images.size(0)
 
     all_preds = torch.cat(all_preds)
