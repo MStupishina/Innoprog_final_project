@@ -5,6 +5,7 @@ from tqdm import tqdm
 
 from configs.cv_and_nlp_config import Config
 
+
 def convert_bbox_voc_to_yolo(xmin, xmax, ymin, ymax, img_w, img_h):
     """
     VOC → YOLO: абсолютные пиксели → нормализованные [0, 1].
@@ -87,7 +88,7 @@ def process_image_set(config: Config, image_set_name: str):
     }
     # Используем официальный VOC train для обучения и официальный VOC val для валидации/финальной оценки.
     # Читаем список имён
-    image_set_path = (config.voc_dir / "ImageSets" / "Main" / f"{image_set_name}.txt")
+    image_set_path = (config.voc_dir / "VOCdevkit" / "VOC2012" / "ImageSets" / "Main" / f"{image_set_name}.txt")
     if not image_set_path.exists():
         print(f"⚠ Image set not found: {image_set_path}, skipping.")
         return
@@ -100,7 +101,7 @@ def process_image_set(config: Config, image_set_name: str):
     labels_dir = yolo_dir / "labels" / image_set_name
     labels_dir.mkdir(parents=True, exist_ok=True)
 
-    ann_dir = config.voc_dir / "Annotations"
+    ann_dir = config.voc_dir / "VOCdevkit" / "VOC2012" / "Annotations"
     skipped_empty = 0
     total_objects = 0
 
@@ -129,22 +130,23 @@ def process_image_set(config: Config, image_set_name: str):
 
 
 def prepare_images(config: Config, image_set_name: str):
-    ids_file = (config.voc_dir / f"ImageSets/Main/{image_set_name}.txt")
+    ids_file = (config.voc_dir / "VOCdevkit" / "VOC2012" / f"ImageSets/Main/{image_set_name}.txt")
     with open(ids_file, encoding="utf-8") as f:
         image_ids = [x.strip() for x in f if x.strip()]
     split = image_set_name
 
     yolo_dir = config.artifacts_B2 / "voc_yolo"
-    out_dir = yolo_dir /"images" / split
+    out_dir = yolo_dir / "images" / split
     out_dir.mkdir(parents=True, exist_ok=True)
 
     for img_id in tqdm(image_ids):
-        src = (config.voc_dir / f"JPEGImages/{img_id}.jpg")
+        src = (config.voc_dir / "VOCdevkit" / "VOC2012" / f"JPEGImages/{img_id}.jpg")
         dst = out_dir / f"{img_id}.jpg"
         if not src.exists():
             print(f"⚠ Image not found: {src}")
             continue
         copy2(src, dst)
+
 
 def create_yaml(config):
     """Создаёт voc.yaml — конфиг датасета для YOLOv8"""
@@ -165,7 +167,7 @@ names:
 
 def main():
     config = Config()
-    print("VOC:", config.voc_dir)
+    print("VOC:", config.voc_dir / "VOCdevkit" / "VOC2012")
     print("Output:", config.artifacts_B2)
 
     # Конвертируем train и val
