@@ -12,6 +12,7 @@ from sklearn.pipeline import Pipeline
 
 from configs.telco_churn_config import Config
 
+optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 class LGBMTuner:
     """Подбор гиперпараметров для LightGBM"""

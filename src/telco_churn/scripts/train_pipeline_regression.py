@@ -1,15 +1,18 @@
 import warnings
 
+from sklearn.exceptions import ConvergenceWarning
+
 from configs.telco_churn_config import Config
 from src.telco_churn.datasets.dataset_loader import DatasetLoaderRegression
 from src.telco_churn.pipelines.regression_pipeline_steps import train_and_select_model, save_artifacts
 
-# Подавляем предупреждения от LightGBM+Optuna
+# Подавляем предупреждения от LightGBM+Optuna, MLP
 warnings.filterwarnings(
     "ignore",
     category=UserWarning,
     module="optuna_integration.lightgbm"
 )
+#warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 def main():
     config = Config()

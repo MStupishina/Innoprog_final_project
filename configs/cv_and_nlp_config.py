@@ -39,7 +39,7 @@ class Config:
         "image_size": 224,
         "batch_size": 32,
         "num_workers": 2,
-        "num_classes": 20,  # VOC: 20 объектов (без фона)
+        "num_classes": len(VOC_CLASSES),  # VOC: 20 объектов (без фона)
         "num_epochs_baseline": 25,
         "num_epochs_transfer": 15,
         "lr_baseline": 0.001,
