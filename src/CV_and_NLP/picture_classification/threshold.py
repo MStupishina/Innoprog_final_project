@@ -164,17 +164,14 @@ def main():
     config = Config()
     print("ResNet18 — подбор threshold")
     print(f"Device: {config.device}")
-    # ---------------------------------------------------------
+
     # Загружаем validation dataset
-    # ---------------------------------------------------------
     _, val_loader, _ = get_dataloaders(config)
-    # ---------------------------------------------------------
+
     # Загружаем обученную ResNet18
-    # ---------------------------------------------------------
     model = load_model(config)
-    # ---------------------------------------------------------
+
     # Получаем вероятности на validation
-    # ---------------------------------------------------------
     probs, targets = get_validation_predictions(
         model,
         val_loader,
@@ -183,9 +180,8 @@ def main():
     print("\nValidation predictions:")
     print(f"Samples: {len(targets)}")
     print(f"Classes: {targets.shape[1]}")
-    # ---------------------------------------------------------
+
     # Подбираем threshold
-    # ---------------------------------------------------------
     best_result, results = find_best_threshold(
         probs,
         targets,
@@ -203,9 +199,8 @@ def main():
         f"Validation micro-F1: "
         f"{best_result['micro_f1']:.4f}"
     )
-    # ---------------------------------------------------------
+
     # Сохраняем
-    # ---------------------------------------------------------
     save_results(
         config,
         best_result,

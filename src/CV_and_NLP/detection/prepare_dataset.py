@@ -96,7 +96,8 @@ def process_image_set(config: Config, image_set_name: str):
         image_ids = [line.strip() for line in f if line.strip()]
 
     # Создаём выходные папки
-    labels_dir = config.artifacts_B2 / "voc_yolo" / "labels" / image_set_name
+    yolo_dir = config.artifacts_B2 / "voc_yolo"
+    labels_dir = yolo_dir / "labels" / image_set_name
     labels_dir.mkdir(parents=True, exist_ok=True)
 
     ann_dir = config.voc_dir / "Annotations"
@@ -133,7 +134,8 @@ def prepare_images(config: Config, image_set_name: str):
         image_ids = [x.strip() for x in f if x.strip()]
     split = image_set_name
 
-    out_dir = config.artifacts_B2 / "voc_yolo/images" / split
+    yolo_dir = config.artifacts_B2 / "voc_yolo"
+    out_dir = yolo_dir /"images" / split
     out_dir.mkdir(parents=True, exist_ok=True)
 
     for img_id in tqdm(image_ids):
