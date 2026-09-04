@@ -46,7 +46,7 @@ def main():
             f"Best model not found: {best_pt}"
         )
     shutil.copy2(best_pt, artifact_best_pt)
-    print("best.pt сохранены")
+    print("best.pt сохранена")
     best_model = YOLO(best_pt)
 
     metrics = best_model.val(

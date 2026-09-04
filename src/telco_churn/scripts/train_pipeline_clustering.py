@@ -48,6 +48,7 @@ def main():
     profiles = segmenter.get_cluster_profiles(df, cluster_labels)
     profiles_path = plot_dir / "cluster_profiles.csv"
     profiles.to_csv(profiles_path)
+
     print(f"\nТаблица профилей сохранена в {profiles_path}")
 
 if __name__ == "__main__":

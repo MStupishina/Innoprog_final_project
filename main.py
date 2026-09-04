@@ -1,90 +1,34 @@
-"""Main entry point for Part A — Telco Customer Churn."""
+"""Main entry point for the Final Project."""
 
-import argparse
+import sys
 
-from src.telco_churn.scripts.train_pipeline_classification import (
-    main as train_classification,
-)
-from src.telco_churn.scripts.train_pipeline_regression import (
-    main as train_regression,
-)
-from src.telco_churn.scripts.train_pipeline_clustering import (
-    main as train_clustering,
-)
-from src.telco_churn.scripts.predict import (
-    main as predict,
-)
-
-
-def train(stage: str) -> None:
-    """Run the selected training stage."""
-
-    if stage == "classification":
-        print("\n=== Training classification ===")
-        train_classification()
-
-    elif stage == "regression":
-        print("\n=== Training regression ===")
-        train_regression()
-
-    elif stage == "clustering":
-        print("\n=== Training clustering ===")
-        train_clustering()
-
-    elif stage == "all":
-        print("\n=== Training classification ===")
-        train_classification()
-
-        print("\n=== Training regression ===")
-        train_regression()
-
-        print("\n=== Training clustering ===")
-        train_clustering()
-
-        print("\n✓ Part A completed successfully.")
-        print("Artifacts saved to artifacts/")
+from src.telco_churn.scripts.train import main as train_part_a
+from src.telco_churn.scripts.predict import main as predict_part_a
 
 
 def main():
+    if len(sys.argv) < 3:
+        print("Usage:")
+        print("  python main.py part_a train")
+        print("  python main.py part_a predict")
+        return
 
-    parser = argparse.ArgumentParser(
-        description="Part A — Telco Customer Churn"
-    )
+    part = sys.argv[1]
+    command = sys.argv[2]
 
-    subparsers = parser.add_subparsers(
-        dest="command",
-        required=True,
-    )
+    if part == "part_a":
 
-    train_parser = subparsers.add_parser(
-        "train",
-        help="Train models",
-    )
+        if command == "train":
+            train_part_a()
 
-    train_parser.add_argument(
-        "--stage",
-        choices=[
-            "all",
-            "classification",
-            "regression",
-            "clustering",
-        ],
-        default="all",
-        help="Training stage",
-    )
+        elif command == "predict":
+            predict_part_a()
 
-    subparsers.add_parser(
-        "predict",
-        help="Run inference",
-    )
+        else:
+            print(f"Unknown command: {command}")
 
-    args = parser.parse_args()
-
-    if args.command == "train":
-        train(args.stage)
-
-    elif args.command == "predict":
-        predict()
+    else:
+        print(f"Unknown part: {part}")
 
 
 if __name__ == "__main__":

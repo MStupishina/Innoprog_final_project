@@ -1,3 +1,4 @@
+import inspect
 import json
 from pathlib import Path
 from typing import Any
@@ -241,5 +242,5 @@ def save_artifacts(
     with open(artifact_path / "best_model.json", "w") as f:
         json.dump(make_json_serializable(metadata), f, indent=4)
 
-    print("\nАртефакты успешно сохранены")
+    print("\nАртефакты регрессии успешно сохранены")
 
