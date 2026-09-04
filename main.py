@@ -2,7 +2,7 @@
 
 import sys
 
-from src.telco_churn.scripts.train import main as train_part_a
+from src.telco_churn.scripts.train import train as train_part_a
 from src.telco_churn.scripts.predict import main as predict_part_a
 
 
