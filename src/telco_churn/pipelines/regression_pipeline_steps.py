@@ -16,8 +16,8 @@ from src.telco_churn.preprocessor import Preprocessor
 from src.telco_churn.training.trainer import RegressionTrainer
 from src.telco_churn.training.tuning import MLPRegressorTuner, LGBMRegressorTuner
 from src.telco_churn.utils import make_json_serializable
-from src.telco_churn.visualisation import plot_model_comparison, plot_cv_boxplot, plot_error_by_quantiles, \
-    plot_residuals, plot_actual_vs_predicted
+from src.telco_churn.visualisation import (plot_model_comparison, plot_cv_boxplot, plot_error_by_quantiles,
+                                           plot_residuals, plot_actual_vs_predicted)
 
 
 def build_pipeline(
@@ -163,6 +163,7 @@ def train_and_select_model(
     best_rmse = float("inf")
 
     for model_name in config.models_regression:
+        print(f"\n=== Обучение: {model_name} ===")
         pipeline = build_pipeline(config=config, model_name=model_name)
         best_params = tune_pipeline_if_needed(
             config=config,

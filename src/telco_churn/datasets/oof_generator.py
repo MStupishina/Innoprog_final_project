@@ -103,8 +103,6 @@ class OOFPChurnGenerator:
                 fold_pipeline.fit(X_tr_raw, y_tr_raw)
                 oof_proba[val_idx] = self._get_positive_class_proba(fold_pipeline, X_val_raw)
 
-            print(f"[OOF] Fold {fold + 1}/{self.config.oof_n_splits} готов")
-
         return oof_proba
 
     def _compute_test(
