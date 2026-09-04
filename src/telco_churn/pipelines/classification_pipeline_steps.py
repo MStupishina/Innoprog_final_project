@@ -200,17 +200,28 @@ def evaluate_model(
             return calibrator.predict_proba(X)
         return trainer.predict_proba(X)
 
-    print("\nМетрики валидации:")
+    # print("\nМетрики валидации:")
     val_proba = get_proba(X_val)
     val_metrics = trainer.evaluate(y_true=y_val, y_proba=val_proba, threshold=threshold)
-    for metric, value in val_metrics.items():
-        print(f"{metric}: {value}")
+    print(
+        f"Validation: ROC-AUC={val_metrics['roc_auc']:.4f} | "
+        f"PR-AUC={val_metrics['pr_auc']:.4f} | "
+        f"F1={val_metrics['f1']:.4f}"
+    )
 
-    print("\nМетрики теста:")
+    # for metric, value in val_metrics.items():
+    #     print(f"{metric}: {value}")
+    #
+    # print("\nМетрики теста:")
     test_proba = get_proba(X_test)
     test_metrics = trainer.evaluate(y_true=y_test, y_proba=test_proba, threshold=threshold)
-    for metric, value in test_metrics.items():
-        print(f"{metric}: {value}")
+    print(
+        f"Test:       ROC-AUC={test_metrics['roc_auc']:.4f} | "
+        f"PR-AUC={test_metrics['pr_auc']:.4f} | "
+        f"F1={test_metrics['f1']:.4f}"
+    )
+    # for metric, value in test_metrics.items():
+    #     print(f"{metric}: {value}")
 
     return {
         "val_proba": val_proba,

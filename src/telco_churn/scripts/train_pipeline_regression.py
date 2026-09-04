@@ -12,7 +12,8 @@ warnings.filterwarnings(
     category=UserWarning,
     module="optuna_integration.lightgbm"
 )
-#warnings.filterwarnings("ignore", category=ConvergenceWarning)
+
+warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 def main():
     config = Config()
