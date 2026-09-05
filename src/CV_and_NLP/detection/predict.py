@@ -22,9 +22,9 @@ def get_predictions(result):
     confidences = result.boxes.conf.cpu().numpy()
 
     for box, class_id, confidence in zip(
-        boxes,
-        classes,
-        confidences,
+            boxes,
+            classes,
+            confidences,
     ):
         predictions.append(
             {
@@ -40,9 +40,9 @@ def get_predictions(result):
 def run_inference(model, config):
     """Инференс YOLO на изображениях validation."""
 
-    val_images_dir = config.artifacts_B2/ "voc_yolo"/ "images"/ "val"
-    output_dir = config.artifacts_B2/ "predictions"/ "all"
-    output_dir.mkdir(parents=True,exist_ok=True)
+    val_images_dir = config.artifacts_B2 / "voc_yolo" / "images" / "val"
+    output_dir = config.artifacts_B2 / "predictions" / "all"
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     model.predict(
         source=str(val_images_dir),
@@ -59,17 +59,18 @@ def run_inference(model, config):
 
     print(f"Predictions saved to: {output_dir}")
 
+
 def analyze_validation_errors(
-    model,
-    config,
-    max_examples_per_category=5,
-    match_iou=0.5,
+        model,
+        config,
+        max_examples_per_category=5,
+        match_iou=0.5,
 ):
     """Находит и сохраняет примеры FP/FN."""
 
-    val_images_dir = config.artifacts_B2/ "voc_yolo"/ "images"/ "val"
-    annotations_dir = config.voc_dir/ "VOCdevkit"/ "VOC2012"/ "Annotations"
-    output_dir = config.artifacts_B2/ "predictions"
+    val_images_dir = config.artifacts_B2 / "voc_yolo" / "images" / "val"
+    annotations_dir = config.voc_dir / "VOCdevkit" / "VOC2012" / "Annotations"
+    output_dir = config.artifacts_B2 / "predictions"
 
     categories = (
         "correct",
@@ -79,7 +80,7 @@ def analyze_validation_errors(
     )
 
     for category in categories:
-        output_dir / category.mkdir(parents=True,exist_ok=True)
+        output_dir / category.mkdir(parents=True, exist_ok=True)
 
     class_to_idx = {name: index for index, name in enumerate(config.VOC_CLASSES)}
     image_paths = sorted(val_images_dir.glob("*.jpg"))
@@ -91,13 +92,13 @@ def analyze_validation_errors(
     total_fn = 0
 
     for image_path in image_paths:
-        xml_path = annotations_dir/ f"{image_path.stem}.xml"
+        xml_path = annotations_dir / f"{image_path.stem}.xml"
         if not xml_path.exists():
             continue
         image = cv2.imread(str(image_path))
         if image is None:
             continue
-        ground_truth = load_ground_truth(xml_path,class_to_idx)
+        ground_truth = load_ground_truth(xml_path, class_to_idx)
 
         results = model.predict(
             source=str(image_path),
@@ -133,7 +134,7 @@ def analyze_validation_errors(
 
         counts[category] += 1
 
-        if saved_examples[category]< max_examples_per_category:
+        if saved_examples[category] < max_examples_per_category:
             annotated = draw_results(
                 image=image,
                 predictions=predictions,
@@ -143,15 +144,11 @@ def analyze_validation_errors(
                 class_names=config.VOC_CLASSES,
             )
 
-            output_path = output_dir/ category/ image_path.name
-            cv2.imwrite(str(output_path),annotated)
+            output_path = output_dir / category / image_path.name
+            cv2.imwrite(str(output_path), annotated)
             saved_examples[category] += 1
 
-        if all(
-            saved_examples[category]
-            >= max_examples_per_category
-            for category in categories
-        ):
+        if all(saved_examples[category] >= max_examples_per_category for category in categories):
             break
 
     summary_path = save_error_summary(
@@ -168,37 +165,22 @@ def analyze_validation_errors(
 
     print("\n=== Error analysis ===")
     print(f"Correct: {counts['correct']}")
-    print(
-        f"False Positive: "
-        f"{counts['false_positive']}"
-    )
-    print(
-        f"False Negative: "
-        f"{counts['false_negative']}"
-    )
-    print(
-        f"Mixed errors: "
-        f"{counts['mixed_errors']}"
-    )
-
+    print(f"False Positive: {counts['false_positive']}")
+    print(f"False Negative: {counts['false_negative']}")
+    print(f"Mixed errors: {counts['mixed_errors']}")
     print(
         f"TP: {total_tp} | "
         f"FP: {total_fp} | "
         f"FN: {total_fn}"
     )
 
-    print(
-        f"Error summary saved to: "
-        f"{summary_path}"
-    )
+    print(f"Error summary saved to: {summary_path}")
 
 
 def main():
     config = Config()
 
-    model_path = (
-        config.artifacts_B2 / "best.pt"
-    )
+    model_path = config.artifacts_B2 / "best.pt"
 
     if not model_path.exists():
         raise FileNotFoundError(
@@ -209,15 +191,8 @@ def main():
     print(f"Device: {config.device}")
     print(f"Model: {model_path}")
 
-    model = YOLO(
-        str(model_path)
-    )
-
-    run_inference(
-        model,
-        config,
-    )
-
+    model = YOLO(str(model_path))
+    run_inference(model,config)
     analyze_validation_errors(
         model,
         config,
