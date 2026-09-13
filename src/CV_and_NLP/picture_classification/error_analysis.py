@@ -21,6 +21,7 @@ import csv
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import torch
 from PIL import Image
 from matplotlib import pyplot as plt
@@ -111,6 +112,7 @@ def analyze_image(
         "false_positive": false_positive,
         "false_negative": false_negative,
         "probabilities": probs,
+        "threshold": threshold,
     }
 
 
@@ -168,7 +170,43 @@ def find_fn_candidates(
 
     return candidates
 
+def build_error_rows(results, classes, threshold):
+    """Формирует запись об ошибке"""
+    rows = []
+    for result in results:
+        image_id = result["image_id"]
+        ground_truth = result["ground_truth"]
+        predictions = result["predictions"]
+        # False Positive
+        for class_name in result["false_positive"]:
+            class_idx = classes.index(class_name)
+            probability = float(result["probabilities"][class_idx])
+            rows.append({
+                "image_id": image_id,
+                "error_type": "FP",
+                "error_class": class_name,
+                "error_probability": probability,
+                "threshold": threshold,
+                "distance_to_threshold": abs(probability - threshold),
+                "ground_truth": ", ".join(ground_truth),
+                "predictions": ", ".join(predictions),
+            })
+        # False Negative
+        for class_name in result["false_negative"]:
+            class_idx = classes.index(class_name)
+            probability = float(result["probabilities"][class_idx])
+            rows.append({
+                "image_id": image_id,
+                "error_type": "FN",
+                "error_class": class_name,
+                "error_probability": probability,
+                "threshold": threshold,
+                "distance_to_threshold": abs(probability - threshold),
+                "ground_truth": ", ".join(ground_truth),
+                "predictions": ", ".join(predictions),
+            })
 
+    return rows
 # ============================================================
 # Сохранение изображения ошибки
 # ============================================================
@@ -384,11 +422,19 @@ def run_error_analysis(
     # --------------------------------------------------------
     # Save all results
     # --------------------------------------------------------
-    results_path = (save_dir / "error_analysis.csv")
+    results_path = save_dir / "error_analysis.csv"
     save_results(
         results=results,
         save_path=results_path,
     )
+    error_rows = build_error_rows(
+        results=results,
+        classes=config.B1["classes"],
+        threshold=threshold,
+    )
+    error_df = pd.DataFrame(error_rows)
+    error_csv = save_dir / "error_details.csv"
+    error_df.to_csv(error_csv, index=False, encoding="utf-8-sig")
     # --------------------------------------------------------
     # Class statistics
     # --------------------------------------------------------
@@ -421,7 +467,7 @@ def run_error_analysis(
     # Save representative FP
     # --------------------------------------------------------
     saved_fp = set()
-    for rank, candidate in enumerate(fp_candidates):
+    for candidate in fp_candidates:
         if len(saved_fp) >= max_examples:
             break
         result = candidate["result"]
@@ -431,6 +477,7 @@ def run_error_analysis(
         if image_id in saved_fp:
             continue
         saved_fp.add(image_id)
+        rank = len(saved_fp)
         image_path = (
                 Path(dataset.voc.root)
                 / "VOCdevkit"
@@ -438,7 +485,7 @@ def run_error_analysis(
                 / "JPEGImages"
                 / f"{image_id}.jpg"
         )
-        save_path = fp_dir / f"{rank + 1:02d}_{image_id}_FP.jpg"
+        save_path = fp_dir / f"{rank:02d}_{image_id}_FP.jpg"
         save_error_image(
             image_path=image_path,
             ground_truth=result["ground_truth"],
@@ -455,7 +502,7 @@ def run_error_analysis(
     # Save representative FN
     # --------------------------------------------------------
     saved_fn = set()
-    for rank, candidate in enumerate(fn_candidates):
+    for candidate in fn_candidates:
         if len(saved_fn) >= max_examples:
             break
         result = candidate["result"]
@@ -463,6 +510,7 @@ def run_error_analysis(
         if image_id in saved_fn:
             continue
         saved_fn.add(image_id)
+        rank = len(saved_fn)
         image_path = (
                 Path(dataset.voc.root)
                 / "VOCdevkit"
@@ -470,7 +518,7 @@ def run_error_analysis(
                 / "JPEGImages"
                 / f"{image_id}.jpg"
         )
-        save_path = fn_dir/ f"{rank + 1:02d}_{image_id}_FN.jpg"
+        save_path = fn_dir/ f"{rank:02d}_{image_id}_FN.jpg"
         save_error_image(
             image_path=image_path,
             ground_truth=result["ground_truth"],
@@ -506,6 +554,7 @@ def run_error_analysis(
     print(f"Representative FN saved: {len(saved_fn)}")
     print("\nSaved:")
     print(f"- {results_path}")
+    print(f"- {error_csv}")
     print(f"- {statistics_path}")
     print(f"- {fp_dir}")
     print(f"- {fn_dir}")

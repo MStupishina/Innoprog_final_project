@@ -39,7 +39,7 @@ def load_threshold(config: Config, model_path):
 
 @torch.no_grad()
 def predict_image(model, image_path, config: Config, threshold=None):
-    transform = get_classification_transforms(train=False, config=config)
+    transform = get_classification_transforms(train=False)
     if threshold is None:
         threshold = config.B1["threshold"]
     image = Image.open(image_path).convert("RGB")
