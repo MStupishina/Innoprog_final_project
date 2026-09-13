@@ -36,7 +36,7 @@ VOC_PALETTE = [
 ]
 
 
-# Белый (224, 224, 192) → граница объекта → метка 255 (игнорируем)
+# Все пиксели, не соответствующие классам VOC, считаются ignore_index (255).
 
 
 def mask_to_class(mask_rgb: np.ndarray) -> np.ndarray:
@@ -46,7 +46,10 @@ def mask_to_class(mask_rgb: np.ndarray) -> np.ndarray:
     для каждого цвета сравниваем весь массив и присваиваем индекс класса.
     """
     height, width, _ = mask_rgb.shape
-    class_mask = np.full((height, width), full_value=Config.B3["ignore_index"], dtype=np.int64)
+    class_mask = np.full(
+        (height, width),
+        full_value=Config.B3["ignore_index"],
+        dtype=np.int64)
 
     for class_idx, color in enumerate(VOC_PALETTE):
         # Сравниваем каждый пиксель с цветом (векторизованно)
@@ -55,7 +58,6 @@ def mask_to_class(mask_rgb: np.ndarray) -> np.ndarray:
         class_mask[matches] = class_idx
 
     # Пиксели, которые не совпали ни с одним цветом → 255 (границы)
-    # Так мы не теряем "белые" пиксели — они просто не матчатся с палитрой
     return class_mask
 
 
@@ -70,16 +72,25 @@ class VOCSegmentationDataset(Dataset):
     def __init__(
             self, root: str,
             image_set: str = "train",
-            img_size: int = None,
+            image_size: int = None,
             augment: bool = False
     ):
         self.root = Path(root or Config.voc_dir)
         self.image_set = image_set
-        self.img_size = img_size or Config.B3["img_size"]
+        self.image_size = (
+            Config.B3["img_size"]
+            if image_size is None
+            else image_size
+        )
         self.augment = augment
 
         self.jpeg_dir = self.root / "JPEGImages"
         self.mask_dir = self.root / "SegmentationClass"
+        self.color_jitter = transforms.ColorJitter(
+            brightness=0.2,
+            contrast=0.2,
+            saturation=0.2,
+        )
 
         # Читаем список файлов
         image_set_path = (self.root / "ImageSets" / "Segmentation" / f"{image_set}.txt")
@@ -90,13 +101,6 @@ class VOCSegmentationDataset(Dataset):
             self.image_ids = [line.strip() for line in f if line.strip()]
         if not self.image_ids: raise ValueError(f"Split '{image_set}' пустой: {image_set_path}")
 
-        # Трансформации для изображения
-        self.img_transform = transforms.Compose([
-            transforms.Resize((self.img_size, self.img_size), interpolation=transforms.InterpolationMode.BILINEAR),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                std=[0.229, 0.224, 0.225]),
-            ])
 
     def __len__(self) -> int:
         return len(self.image_ids)
@@ -114,7 +118,7 @@ class VOCSegmentationDataset(Dataset):
         mask_path = self.mask_dir / f"{image_id}.png"
         if not mask_path.exists():
             raise FileNotFoundError(f"Не найдена маска: {mask_path}")
-        mask = Image.open(mask_path)
+        mask = Image.open(mask_path).convert("RGB")
 
         if self.augment:
             # Один случайный flip применяется одновременно к image и mask.
@@ -125,17 +129,16 @@ class VOCSegmentationDataset(Dataset):
         # Для изображения используем bilinear.
         image = TF.resize(
             image,
-            [self.img_size, self.img_size],
+            [self.image_size, self.image_size],
             interpolation=transforms.InterpolationMode.BILINEAR)
         # Для маски обязательно NEAREST. # Иначе интерполяция создаст несуществующие значения классов.
         mask = TF.resize(
             mask,
-            [self.img_size, self.img_size],
+            [self.image_size, self.image_size],
             interpolation=transforms.InterpolationMode.NEAREST)
 
         if self.augment:
-            color_jitter = transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2)
-            image = color_jitter(image)
+            image = self.color_jitter(image)
 
         image = TF.to_tensor(image)
         image = TF.normalize(image, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], )
@@ -149,24 +152,24 @@ class VOCSegmentationDataset(Dataset):
 
 def get_segmentation_dataloaders(
         batch_size: int = None,
-        img_size: int = None,
+        image_size: int = None,
         num_workers: int = None,
 ):
     """Возвращает train_loader, val_loader для сегментации."""
-    batch_size = batch_size or Config.B3["batch_size"]
-    img_size = img_size or Config.B3["img_size"]
+    batch_size = (Config.B3["batch_size"] if batch_size is None else batch_size)
+    image_size = (Config.B3["img_size"] if image_size is None else image_size)
     num_workers = (Config.B3["num_workers"] if num_workers is None else num_workers)
 
     train_dataset = VOCSegmentationDataset(
         root=Config.voc_dir,
         image_set="train",
-        img_size=img_size,
+        image_size=image_size,
         augment=True,
     )
     val_dataset = VOCSegmentationDataset(
         root=Config.voc_dir,
         image_set="val",
-        img_size=img_size,
+        image_size=image_size,
         augment=False,
     )
 
