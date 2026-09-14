@@ -269,7 +269,7 @@ def main():
     train_transfer = args.transfer or not args.baseline
 
     print(f"Device: {config.device}")
-    train_loader, val_loader, test_loader = get_dataloaders(config)
+    train_loader, val_loader, test_loader = get_dataloaders()
 
     results = {}
 

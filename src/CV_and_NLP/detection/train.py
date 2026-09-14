@@ -46,7 +46,7 @@ def main():
             f"Best model not found: {best_pt}"
         )
     shutil.copy2(best_pt, artifact_best_pt)
-    print("best.pt сохранены")
+    print("best.pt сохранена")
     best_model = YOLO(best_pt)
 
     metrics = best_model.val(
@@ -55,9 +55,18 @@ def main():
         imgsz=config.B2["imgsz"],
         batch=config.B2["batch"],
         device=config.device,
+        plots=True,
     )
     map50 = float(metrics.box.map50)
     map50_95 = float(metrics.box.map)
+    precision = float(metrics.box.mp)
+    recall = float(metrics.box.mr)
+    per_class_map50 = {}
+    if hasattr(metrics.box, "maps"):
+        for class_id, class_name in enumerate(config.VOC_CLASSES):
+            if class_id < len(metrics.box.maps):
+                per_class_map50[class_name] = float(metrics.box.maps[class_id])
+
     metrics_data = {
         "model": config.B2["model"],
         "imgsz": config.B2["imgsz"],
@@ -65,6 +74,9 @@ def main():
         "batch": config.B2["batch"],
         "mAP@0.5": map50,
         "mAP@0.5:0.95": map50_95,
+        "precision": precision,
+        "recall": recall,
+        "per_class_mAP@0.5:0.95": per_class_map50,
         "best_model": str(artifact_best_pt),
         "split": "val",
         "confidence_threshold": config.B2["conf_threshold"],
@@ -76,6 +88,13 @@ def main():
     print(f"Metrics saved to: {metrics_json}")
     print(f"mAP@0.5: {map50:.4f}")
     print(f"mAP@0.5:0.95: {map50_95:.4f}")
+    plots_to_copy = ["results.png", "confusion_matrix.png", "PR_curve.png", "F1_curve.png", "P_curve.png",
+                     "R_curve.png", ]
+    for plot_name in plots_to_copy:
+        source = config.artifacts_B2 / "yolov8_voc" / plot_name
+        destination = config.artifacts_B2 / plot_name
+        if source.exists():
+            shutil.copy2(source, destination)
 
 
 if __name__ == "__main__":

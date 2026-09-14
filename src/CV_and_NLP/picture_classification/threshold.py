@@ -119,10 +119,8 @@ def save_results(
     }
 
     output_path = save_dir / "threshold.json"
-
     with open(output_path, "w") as f:
         json.dump(output, f, indent=2)
-
     print(f"\nThreshold сохранён:")
     print(output_path)
 
@@ -166,7 +164,7 @@ def main():
     print(f"Device: {config.device}")
 
     # Загружаем validation dataset
-    _, val_loader, _ = get_dataloaders(config)
+    _, val_loader, _ = get_dataloaders()
 
     # Загружаем обученную ResNet18
     model = load_model(config)

@@ -73,7 +73,7 @@ class LGBMTuner:
                 callbacks=[
                     LightGBMPruningCallback(trial, "auc"),
                     # Добавляем стандартную раннюю остановку через callback
-                    early_stopping(stopping_rounds=50),
+                    early_stopping(stopping_rounds=50, verbose=False),
                     log_evaluation(period=0),
                 ])
 
@@ -91,7 +91,7 @@ class LGBMTuner:
             n_trials=self.n_trials)
 
         best_params = {f"model__{k}": v for k, v in study.best_params.items()}
-        print("Best LGBM params:", best_params)
+        #print("Best LGBM params:", best_params)
         return best_params
 
 
@@ -145,7 +145,7 @@ class KNNTuner:
         study.optimize(lambda trial: self._objective(trial, pipeline, X, y),
                        n_trials=self.n_trials)
         best_params = {f"model__{k}": v for k, v in study.best_params.items()}
-        print("Best KNN params:", best_params)
+        #print("Best KNN params:", best_params)
         return best_params
 
 
@@ -170,6 +170,7 @@ class LGBMRegressorTuner:
             "model__reg_alpha": trial.suggest_float("reg_alpha", 1e-3, 10, log=True),
             "model__reg_lambda": trial.suggest_float("reg_lambda", 1e-3, 10, log=True),
             "model__random_state": self.random_state,
+            "model__verbosity": -1,
         }
         return params
 
@@ -200,7 +201,7 @@ class LGBMRegressorTuner:
                 X_train_processed, y_train_fold,
                 eval_set=[(X_val_processed, y_val_fold)],
                 eval_metric="rmse",
-                callbacks=[early_stopping(stopping_rounds=50),
+                callbacks=[early_stopping(stopping_rounds=50, verbose=False),
                            log_evaluation(period=0)],
             )
             y_pred = model.predict(X_val_processed)
@@ -214,7 +215,7 @@ class LGBMRegressorTuner:
         study = optuna.create_study(direction="minimize")  # минимизируем RMSE
         study.optimize(lambda trial: self._objective(trial, pipeline, X, y), n_trials=self.n_trials)
         best_params = {f"model__{k}": v for k, v in study.best_params.items()}
-        print("Best LGBM params:", best_params)
+        #print("Best LGBM params:", best_params)
         return best_params
 
 class MLPRegressorTuner:
@@ -305,5 +306,5 @@ class MLPRegressorTuner:
             "model__random_state": self.random_state,
         }
 
-        print(f"Best MLPRegressor params: {best_params}")
+        #print(f"Best MLPRegressor params: {best_params}")
         return best_params

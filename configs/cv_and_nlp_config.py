@@ -34,7 +34,7 @@ class Config:
         ]
 
 
-    # B1 параметры
+    # B1 Классификация изображений параметры
     B1 = {
         "image_size": 224,
         "batch_size": 32,
@@ -56,7 +56,7 @@ class Config:
         "test_size": 0.15,
     }
 
-    # B2 параметры
+    # B2 Детекция объектов (YOLOv8) параметры
     B2 = {
         "model": "yolov8n.pt",  # nano — быстро, для прототипа
         "imgsz": 640,
@@ -69,3 +69,16 @@ class Config:
         "iou_threshold": 0.45,  # NMS
     }
 
+    # B3: Сегментация (U-Net) параметры
+    B3 = {
+        "in_channels": 3,
+        "out_channels": 21,  # 20 классов + фон
+        "features": [64, 128, 256, 512],  # каналы на каждом уровне U-Net
+        "img_size": 256,
+        "batch_size": 8,
+        "num_epochs": 30,
+        "lr": 0.001,
+        "weight_decay": 1e-4,
+        "ignore_index": 255,  # границы объектов в VOC (игнорируем)
+        "num_workers": 2,
+    }
