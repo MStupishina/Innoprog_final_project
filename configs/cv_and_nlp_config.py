@@ -98,5 +98,5 @@ class Config:
         "weight_decay": 0.01,
         # Данные
         "sample_size": 10000,  # подвыборка IMDb для скорости
-        "test_size": 0.2,
+        "val_size": 0.2,
     }

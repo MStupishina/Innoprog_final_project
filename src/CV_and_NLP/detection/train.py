@@ -56,6 +56,9 @@ def main():
         batch=config.B2["batch"],
         device=config.device,
         plots=True,
+        project=str(config.artifacts_B2),
+        name="val",
+        exist_ok=True,
     )
     map50 = float(metrics.box.map50)
     map50_95 = float(metrics.box.map)
@@ -90,11 +93,15 @@ def main():
     print(f"mAP@0.5:0.95: {map50_95:.4f}")
     plots_to_copy = ["results.png", "confusion_matrix.png", "PR_curve.png", "F1_curve.png", "P_curve.png",
                      "R_curve.png", ]
+    val_dir = config.artifacts_B2 / "val"
     for plot_name in plots_to_copy:
-        source = config.artifacts_B2 / "yolov8_voc" / plot_name
+        source = val_dir / plot_name
         destination = config.artifacts_B2 / plot_name
         if source.exists():
             shutil.copy2(source, destination)
+            print(f"Saved: {destination}")
+        else:
+            print(f"Warning: plot not found: {source}")
 
 
 if __name__ == "__main__":

@@ -7,7 +7,8 @@ from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import (DistilBertTokenizer, DistilBertForSequenceClassification,
-                         get_linear_schedule_with_warmup, AdamW)
+                          get_linear_schedule_with_warmup, AutoTokenizer, AutoModelForSequenceClassification)
+from torch.optim import AdamW
 
 from configs.cv_and_nlp_config import Config
 
@@ -112,7 +113,7 @@ def main():
     print(f"Train: {len(train_data)}, Test: {len(test_data)}")
 
     # ── Tokenizer ──
-    tokenizer = DistilBertTokenizer.from_pretrained(config.B4["transformer_model"])
+    tokenizer = AutoTokenizer.from_pretrained(config.B4["transformer_model"])
 
     # ── Датасеты ──
     train_dataset = IMDbDataset(
@@ -130,7 +131,7 @@ def main():
                              shuffle=False)
 
     # ── Модель ──
-    model = DistilBertForSequenceClassification.from_pretrained(
+    model = AutoModelForSequenceClassification.from_pretrained(
         config.B4["transformer_model"],
         num_labels=2,
     ).to(config.device)

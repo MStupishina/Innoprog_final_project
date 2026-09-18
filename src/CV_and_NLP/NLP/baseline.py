@@ -14,14 +14,14 @@ from configs.cv_and_nlp_config import Config
 def load_imdb_data(sample_size=None):
     """Загружает IMDb датасет через HuggingFace datasets."""
     print("Loading IMDb dataset...")
-    dataset = load_dataset("stanfordnlp/imdb", cache_dir=None)
+    dataset = load_dataset("stanfordnlp/imdb", cache_dir=config.cache_dir)
     # ^ HuggingFace сам кэширует
 
     train_df = dataset["train"].to_pandas()
     test_df = dataset["test"].to_pandas()
 
     if sample_size and sample_size < len(train_df):
-        train_df = train_df.sample(n=sample_size, random_state=SEED)
+        train_df = train_df.sample(n=sample_size, random_state=config.seed)
         # Проверяем баланс
         pos_ratio = train_df["label"].mean()
         print(f"Sampled {sample_size} examples, positive ratio: {pos_ratio:.2f}")
@@ -47,7 +47,7 @@ def main():
         max_features=config.B4["tfidf_max_features"],
         ngram_range=config.B4["tfidf_ngram_range"],
         sublinear_tf=config.B4["tfidf_sublinear_tf"],
-        stop_words="english",
+        stop_words=None,
     )
     X_train_tfidf = vectorizer.fit_transform(X_train)
     X_test_tfidf = vectorizer.transform(X_test)
@@ -102,9 +102,9 @@ def main():
     for i in range(2):
         for j in range(2):
             ax.text(j, i, cm[i, j],
-                    ha="center", va="center", fontsize = 16,
-                    fontweight = "bold",
-                    color = "white" if cm[i, j] > cm.max() / 2 else "black")
+                    ha="center", va="center", fontsize=16,
+                    fontweight="bold",
+                    color="white" if cm[i, j] > cm.max() / 2 else "black")
 
     plt.colorbar(im, ax=ax)
     plt.tight_layout()
@@ -141,6 +141,7 @@ def main():
     plt.close()
 
     print(f"\n✓ Artifacts saved to {save_dir}")
+
 
 if __name__ == "__main__":
     main()
