@@ -80,7 +80,7 @@ def analyze_validation_errors(
     )
 
     for category in categories:
-        output_dir / category.mkdir(parents=True, exist_ok=True)
+        (output_dir / category).mkdir(parents=True, exist_ok=True)
 
     class_to_idx = {name: index for index, name in enumerate(config.VOC_CLASSES)}
     image_paths = sorted(val_images_dir.glob("*.jpg"))
