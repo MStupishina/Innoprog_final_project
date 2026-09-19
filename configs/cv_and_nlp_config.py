@@ -82,3 +82,21 @@ class Config:
         "ignore_index": 255,  # границы объектов в VOC (игнорируем)
         "num_workers": 2,
     }
+    # B4: NLP — анализ тональности
+    B4 = {
+        # TF-IDF + LogReg
+        "tfidf_max_features": 50000,
+        "tfidf_ngram_range": (1, 2),
+        "tfidf_sublinear_tf": True,
+        # DistilBERT
+        "transformer_model": "distilbert-base-uncased",
+        "max_length": 256,
+        "transformer_batch_size": 16,
+        "transformer_epochs": 3,
+        "transformer_lr": 2e-5,
+        "warmup_steps": 0,
+        "weight_decay": 0.01,
+        # Данные
+        "sample_size": 10000,  # подвыборка IMDb для скорости
+        "val_size": 0.2,
+    }
