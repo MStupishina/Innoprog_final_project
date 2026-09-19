@@ -7,14 +7,15 @@ from matplotlib import pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score, classification_report, confusion_matrix
+from sklearn.model_selection import train_test_split
 
 from configs.cv_and_nlp_config import Config
 
 
-def load_imdb_data(sample_size=None):
+def load_imdb_data(config, sample_size=None):
     """Загружает IMDb датасет через HuggingFace datasets."""
     print("Loading IMDb dataset...")
-    dataset = load_dataset("stanfordnlp/imdb", cache_dir=config.cache_dir)
+    dataset = load_dataset("stanfordnlp/imdb", cache_dir=str(config.imdb_cache), )
     # ^ HuggingFace сам кэширует
 
     train_df = dataset["train"].to_pandas()
@@ -35,8 +36,15 @@ def main():
     save_dir.mkdir(parents=True, exist_ok=True)
 
     # ── Загрузка данных ──
-    train_df, test_df = load_imdb_data(config.B4["sample_size"])
-    X_train, y_train = train_df["text"].values, train_df["label"].values
+    train_df, test_df = load_imdb_data(config=config, sample_size=config.B4["sample_size"])
+    X_train_val, y_train_val = train_df["text"].values, train_df["label"].values
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_train_val,
+        y_train_val,
+        test_size=config.B4["val_size"],
+        random_state=config.seed,
+        stratify=y_train_val,
+    )
     X_test, y_test = test_df["text"].values, test_df["label"].values
 
     print(f"Train: {len(X_train)}, Test: {len(X_test)}")
@@ -50,6 +58,7 @@ def main():
         stop_words=None,
     )
     X_train_tfidf = vectorizer.fit_transform(X_train)
+    X_val_tfidf = vectorizer.transform(X_val)
     X_test_tfidf = vectorizer.transform(X_test)
 
     print(f"Vocabulary size: {len(vectorizer.vocabulary_)}")
