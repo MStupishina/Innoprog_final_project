@@ -163,7 +163,7 @@ def get_dataloaders(batch_size: int = None, num_workers: int = None):
 
     # Разбиение: 70% train, 15% val, 15% test
     test_val_size = Config.B1["val_size"] + Config.B1["test_size"]
-    splitter = MultilabelStratifiedShuffleSplit(n_splits=1, test_size=test_val_size, random_state=Сonfig.seed)
+    splitter = MultilabelStratifiedShuffleSplit(n_splits=1, test_size=test_val_size, random_state=Config.seed)
     train_idx, temp_idx = next(splitter.split(indices, targets))
     temp_targets = targets[temp_idx]
 
