@@ -100,14 +100,14 @@ def main():
 
     print(f"Device: {config.device}")
 
-    # ── Загрузка данных ──
+    #Загрузка данных
     print("Loading IMDb dataset...")
     dataset = load_dataset("stanfordnlp/imdb")
     train_val_data = dataset["train"]
 
     # Подвыборка для скорости
     if config.B4["sample_size"] and config.B4["sample_size"] < len(train_val_data):
-        train_data = train_val_data.shuffle(seed=config.seed).select(range(config.B4["sample_size"]))
+        train_val_data = train_val_data.shuffle(seed=config.seed).select(range(config.B4["sample_size"]))
 
     split = train_val_data.train_test_split(
         test_size=config.B4["val_size"],
@@ -120,16 +120,17 @@ def main():
 
     print(f"Train: {len(train_data)}, Val: {len(val_data)} Test: {len(test_data)}")
 
-    # ── Tokenizer ──
+    #Tokenizer
     tokenizer = AutoTokenizer.from_pretrained(config.B4["transformer_model"])
 
-    # ── Датасеты ──
+    #Датасеты
     train_dataset = IMDbDataset(
         train_data["text"], train_data["label"],
         tokenizer, config.B4["max_length"],
     )
     val_dataset = IMDbDataset(
-        val
+        val_data["text"], val_data["label"],
+        tokenizer, config.B4["max_length"],
     )
     test_dataset = IMDbDataset(
         test_data["text"], test_data["label"],
@@ -138,16 +139,18 @@ def main():
 
     train_loader = DataLoader(train_dataset, batch_size=config.B4["transformer_batch_size"],
                               shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=config.B4["transformer_batch_size"],
+                            shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=config.B4["transformer_batch_size"],
                              shuffle=False)
 
-    # ── Модель ──
+    #Модель
     model = AutoModelForSequenceClassification.from_pretrained(
         config.B4["transformer_model"],
         num_labels=2,
     ).to(config.device)
 
-    # ── Оптимизатор + Scheduler ──
+    #Оптимизатор + Scheduler
     optimizer = AdamW(model.parameters(), lr=config.B4["transformer_lr"],
                       weight_decay=config.B4["weight_decay"])
     total_steps = len(train_loader) * config.B4["transformer_epochs"]
@@ -157,16 +160,21 @@ def main():
         num_training_steps=total_steps,
     )
 
-    # ── Обучение ──
+    #Обучение
     history = {"train_loss": [], "val_loss": [], "val_acc": [], "val_f1": []}
-    best_f1 = 0.0
-
+    best_f1 = -1.0
+    best_epoch = 0
+    best_metrics = {
+        "epoch": best_epoch,
+        "val_f1": best_f1,
+        "val_accuracy": 0.0,
+    }
     for epoch in range(1, config.B4["transformer_epochs"] + 1):
         print(f"\n{'='*50}")
         print(f"Epoch {epoch}/{config.B4['transformer_epochs']}")
 
         train_loss = train_epoch(model, train_loader, optimizer, scheduler, config.device)
-        val_loss, val_acc, val_f1, val_preds, val_labels = evaluate(model, test_loader, config.device)
+        val_loss, val_acc, val_f1, val_preds, val_labels = evaluate(model, val_loader, config.device)
 
         history["train_loss"].append(round(train_loss, 4))
         history["val_loss"].append(round(val_loss, 4))
@@ -178,25 +186,43 @@ def main():
 
         if val_f1 > best_f1:
             best_f1 = val_f1
+            best_epoch = epoch
+            best_metrics = {
+                "epoch": epoch,
+                "val_f1": val_f1,
+                "val_accuracy": val_acc,
+                "val_loss": val_loss,
+            }
             model.save_pretrained(save_dir)
             tokenizer.save_pretrained(save_dir)
             print(f"  ✓ Saved (F1={best_f1:.4f})")
 
-    # ── Финальные метрики ──
+    #Финальные метрики
+    model = AutoModelForSequenceClassification.from_pretrained(save_dir).to(config.device)
+
+    test_loss, test_acc, test_f1, test_preds, test_labels = evaluate(
+        model,
+        test_loader,
+        config.device
+    )
+    metrics = {
+        "best_epoch": best_epoch,
+        "val_accuracy": round(best_metrics["val_accuracy"], 4),
+        "val_f1": round(best_metrics["val_f1"], 4),
+        "test_accuracy": round(test_acc, 4),
+        "test_f1": round(test_f1, 4),
+    }
     print(f"\n{'='*50}")
     print(f"DistilBERT Results")
     print(f"{'='*50}")
-    print(f"Best F1:        {best_f1:.4f}")
-    print(f"Best Accuracy:  {max(history['val_acc']):.4f}")
+    print(f"Best epoch:    {best_metrics['epoch']}")
+    print(f"Best Val F1:   {best_metrics['val_f1']:.4f}")
+    print(f"Best Val Acc:  {best_metrics['val_accuracy']:.4f}")
 
-    metrics = {
-        "best_f1": round(best_f1, 4),
-        "best_accuracy": round(max(history["val_acc"]), 4),
-    }
     with open(save_dir/"metrics.json", "w") as f:
         json.dump(metrics, f, indent=2)
 
-    # ── Графики ──
+    #Графики
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
     epochs_x = range(1, len(history["train_loss"]) + 1)
 
@@ -220,9 +246,8 @@ def main():
     plt.savefig(save_dir/ "learning_curves.png", dpi=100)
     plt.close()
 
-    # ── Confusion Matrix ──
-    _, _, _, final_preds, final_labels = evaluate(model, test_loader, config.device)
-    cm = confusion_matrix(final_labels, final_preds)
+    #Confusion Matrix
+    cm = confusion_matrix(test_labels, test_preds)
     fig, ax = plt.subplots(figsize=(6, 5))
     im = ax.imshow(cm, cmap="Blues")
     ax.set_xticks([0, 1])

@@ -376,8 +376,8 @@ def run_error_analysis(
     # --------------------------------------------------------
     # Test split
     # --------------------------------------------------------
-    split_dir = (config.artifacts_B1 / "splits")
-    test_idx_path = (split_dir / "test_idx.npy")
+    split_dir = config.artifacts_B1 / "splits"
+    test_idx_path = split_dir / "test_idx.npy"
     if not test_idx_path.exists():
         raise FileNotFoundError(
             f"Не найден test split: "
@@ -412,7 +412,10 @@ def run_error_analysis(
             config=config,
             threshold=threshold,
         )
-        image_id = dataset.voc.ids[dataset_index]
+        original_index = dataset.indices[dataset_index]
+        image_path = dataset.dataset.voc.images[original_index]
+        image_id = Path(image_path).stem
+        #image_id = dataset.voc.ids[dataset_index]
         result["index"] = dataset_index
         result["image"] = image_id
         results.append(result)
