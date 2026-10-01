@@ -385,10 +385,9 @@ def run_error_analysis(
         )
     test_indices = np.load(test_idx_path)
     dataset = VOCMultiLabelDataset(
-        config=config,
         root=config.voc_dir,
         image_set="trainval",
-        transform=get_classification_transforms(train=False, config=config),
+        transform=get_classification_transforms(train=False),
     )
     # --------------------------------------------------------
     # Output

@@ -35,7 +35,7 @@ def main():
     save_dir = config.artifacts_B4 / "tfidf_logreg"
     save_dir.mkdir(parents=True, exist_ok=True)
 
-    # ── Загрузка данных ──
+    # Загрузка данных
     train_df, test_df = load_imdb_data(config=config, sample_size=config.B4["sample_size"])
     X_train_val, y_train_val = train_df["text"].values, train_df["label"].values
     X_train, X_val, y_train, y_val = train_test_split(
@@ -72,7 +72,16 @@ def main():
     )
     model.fit(X_train_tfidf, y_train)
 
-    # ── Оценка ──
+    # Оценка на val_set
+    y_val_pred = model.predict(X_val_tfidf)
+
+    val_acc = accuracy_score(y_val, y_val_pred)
+    val_f1 = f1_score(y_val, y_val_pred)
+
+    print(f"Validation Accuracy: {val_acc:.4f}")
+    print(f"Validation F1:       {val_f1:.4f}")
+
+    # Оценка на test
     y_pred = model.predict(X_test_tfidf)
     acc = accuracy_score(y_test, y_pred)
     f1 = f1_score(y_test, y_pred)

@@ -103,14 +103,22 @@ def main():
     # ── Загрузка данных ──
     print("Loading IMDb dataset...")
     dataset = load_dataset("stanfordnlp/imdb")
-    train_data = dataset["train"]
-    test_data = dataset["test"]
+    train_val_data = dataset["train"]
 
     # Подвыборка для скорости
-    if config.B4["sample_size"] and config.B4["sample_size"] < len(train_data):
-        train_data = train_data.shuffle(seed=config.seed).select(range(config.B4["sample_size"]))
+    if config.B4["sample_size"] and config.B4["sample_size"] < len(train_val_data):
+        train_data = train_val_data.shuffle(seed=config.seed).select(range(config.B4["sample_size"]))
 
-    print(f"Train: {len(train_data)}, Test: {len(test_data)}")
+    split = train_val_data.train_test_split(
+        test_size=config.B4["val_size"],
+        seed=config.seed,
+        stratify_by_column="label",
+    )
+    train_data = split["train"]
+    val_data = split["test"]
+    test_data = dataset["test"]
+
+    print(f"Train: {len(train_data)}, Val: {len(val_data)} Test: {len(test_data)}")
 
     # ── Tokenizer ──
     tokenizer = AutoTokenizer.from_pretrained(config.B4["transformer_model"])
@@ -119,6 +127,9 @@ def main():
     train_dataset = IMDbDataset(
         train_data["text"], train_data["label"],
         tokenizer, config.B4["max_length"],
+    )
+    val_dataset = IMDbDataset(
+        val
     )
     test_dataset = IMDbDataset(
         test_data["text"], test_data["label"],
