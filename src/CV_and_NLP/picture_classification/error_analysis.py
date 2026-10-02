@@ -412,7 +412,7 @@ def run_error_analysis(
             config=config,
             threshold=threshold,
         )
-        original_index = dataset.indices[dataset_index]
+        original_index = test_idx[dataset_index]
         image_path = dataset.dataset.voc.images[original_index]
         image_id = Path(image_path).stem
         #image_id = dataset.voc.ids[dataset_index]
