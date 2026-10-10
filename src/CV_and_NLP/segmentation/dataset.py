@@ -46,10 +46,7 @@ def mask_to_class(mask_rgb: np.ndarray) -> np.ndarray:
     для каждого цвета сравниваем весь массив и присваиваем индекс класса.
     """
     height, width, _ = mask_rgb.shape
-    class_mask = np.full(
-        (height, width),
-        full_value=Config.B3["ignore_index"],
-        dtype=np.int64)
+    class_mask = np.full((height, width), fill_value=Config.B3["ignore_index"], dtype=np.int64)
 
     for class_idx, color in enumerate(VOC_PALETTE):
         # Сравниваем каждый пиксель с цветом (векторизованно)

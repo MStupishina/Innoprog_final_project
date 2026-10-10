@@ -256,7 +256,7 @@ def save_results(results, save_path):
 
     fieldnames = [
         "index",
-        "image",
+        "image_id",
         "ground_truth",
         "predictions",
         "false_positive",
@@ -274,7 +274,7 @@ def save_results(results, save_path):
         for result in results:
             writer.writerow({
                 "index": result["index"],
-                "image": result["image"],
+                "image_id": result["image_id"],
                 "ground_truth": ", ".join(result["ground_truth"]),
                 "predictions": ", ".join(result["predictions"]),
                 "false_positive": ", ".join(result["false_positive"]),
@@ -412,12 +412,10 @@ def run_error_analysis(
             config=config,
             threshold=threshold,
         )
-        original_index = test_idx[dataset_index]
-        image_path = dataset.dataset.voc.images[original_index]
+        image_path = dataset.voc.images[dataset_index]
         image_id = Path(image_path).stem
-        #image_id = dataset.voc.ids[dataset_index]
         result["index"] = dataset_index
-        result["image"] = image_id
+        result["image_id"] = image_id
         results.append(result)
         if (position + 1) % 100 == 0:
             print(f"Processed: {position + 1}/{len(test_indices)}")
@@ -473,7 +471,7 @@ def run_error_analysis(
         if len(saved_fp) >= max_examples:
             break
         result = candidate["result"]
-        image_id = result["image"]
+        image_id = result["image_id"]
         # Не сохраняем одно и то же изображение
         # несколько раз, если на нём несколько FP.
         if image_id in saved_fp:
@@ -508,7 +506,7 @@ def run_error_analysis(
         if len(saved_fn) >= max_examples:
             break
         result = candidate["result"]
-        image_id = result["image"]
+        image_id = result["image_id"]
         if image_id in saved_fn:
             continue
         saved_fn.add(image_id)

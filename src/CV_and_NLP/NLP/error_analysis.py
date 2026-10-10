@@ -40,7 +40,10 @@ def load_transformer_model(config: Config):
 def predict_baseline(model, vectorizer, texts):
     """Батч-предикт для TF-IDF+LogReg."""
     X = vectorizer.transform(texts)
-    return model.predict(X)
+    probabilities = model.predict_proba(X)
+    predictions = probabilities.argmax(axis=1)
+    confidence = probabilities.max(axis=1)
+    return predictions, probabilities, confidence
 
 
 def predict_transformer(
