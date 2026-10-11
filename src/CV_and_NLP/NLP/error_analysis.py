@@ -6,12 +6,13 @@ B4: Сравнительный анализ ошибок — TF-IDF+LogReg vs Di
 import json
 import pickle
 from collections import defaultdict
-
 import numpy as np
+import pandas as pd
 import torch
 from datasets import load_dataset
 from matplotlib import pyplot as plt
-from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report, recall_score, \
+    precision_score
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 from configs.cv_and_nlp_config import Config
@@ -21,13 +22,14 @@ LABEL_NAMES = {0: "negative", 1: "positive"}
 def load_baseline_model(config: Config):
     """Загружает TF-IDF + LogReg."""
     save_dir = config.artifacts_B4 / "tfidf_logreg"
-    if not save_dir.exists():
-        raise FileNotFoundError(
-            f"Не найдены артефакты. Сначала запусти baseline.py."
-        )
-    with open(save_dir / "model.pkl", "rb") as f:
+    model_path = save_dir / "model.pkl"
+    vectorizer_path = save_dir / "vectorizer.pkl"
+    for path in (model_path, vectorizer_path):
+        if not path.exists():
+            raise FileNotFoundError(f"Не найден артефакт: {path}. Сначала запусти baseline.py.")
+    with open(model_path, "rb") as f:
         model = pickle.load(f)
-    with open(save_dir / "vectorizer.pkl", "rb") as f:
+    with open(vectorizer_path, "rb") as f:
         vectorizer = pickle.load(f)
     return model, vectorizer
 
@@ -36,12 +38,22 @@ def load_baseline_model(config: Config):
 def load_transformer_model(config: Config):
     """Загружает DistilBERT."""
     save_dir = config.artifacts_B4 / "distilbert"
-    if not save_dir.exists():
-        raise FileNotFoundError(
-            f"Не найден каталог модели: {save_dir}. Сначала запусти transformer.py."
-        )
-    tokenizer = AutoTokenizer.from_pretrained(save_dir)
-    model = AutoModelForSequenceClassification.from_pretrained(save_dir).to(config.device)
+    required_files = ("config.json","tokenizer_config.json")
+    for filename in required_files:
+        path = save_dir / filename
+        if not path.exists():
+            raise FileNotFoundError(f"Не найден артефакт: {path}. Проверь сохранение модели и токенизатора "
+                "в transformer.py и запусти его повторно.")
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(save_dir)
+        model = AutoModelForSequenceClassification.from_pretrained(
+            save_dir
+        ).to(config.device)
+    except (OSError, ValueError) as exc:
+        raise RuntimeError(
+            f"Не удалось загрузить модель или токенизатор из {save_dir}. "
+            "Проверь артефакты и при необходимости запусти transformer.py повторно."
+        ) from exc
     model.eval()
     return model, tokenizer
 
@@ -126,11 +138,56 @@ def find_disagreements(texts, y_true, y_baseline, y_transformer,
     сарказма или пограничного случая. Такие примеры нужно читать вручную.
     """
     results = defaultdict(list)
-    arrays = [y_true, y_baseline, y_transformer, baseline_probs,
-              transformer_probs, baseline_confidence, transformer_confidence]
+    texts = list(texts)
+    y_true = np.asarray(y_true)
+    y_baseline = np.asarray(y_baseline)
+    y_transformer = np.asarray(y_transformer)
+    baseline_probs = np.asarray(baseline_probs)
+    transformer_probs = np.asarray(transformer_probs)
+    baseline_confidence = np.asarray(baseline_confidence)
+    transformer_confidence = np.asarray(transformer_confidence)
+
+    arrays = [y_true, y_baseline, y_transformer,
+              baseline_probs, transformer_probs,
+              baseline_confidence, transformer_confidence]
     lengths = {len(texts), *(len(array) for array in arrays)}
     if len(lengths) != 1:
         raise ValueError(f"Размеры входов не совпадают: {sorted(lengths)}")
+    if baseline_probs.shape != (len(texts), 2):
+        raise ValueError("baseline_probs должен иметь форму (N, 2)")
+    if transformer_probs.shape != (len(texts), 2):
+        raise ValueError("transformer_probs должен иметь форму (N, 2)")
+
+    for name, probs in [
+        ("baseline_probs", baseline_probs),
+        ("transformer_probs", transformer_probs),
+    ]:
+        if not np.isfinite(probs).all():
+            raise ValueError(f"{name} содержит NaN или inf")
+
+        if ((probs < 0) | (probs > 1)).any():
+            raise ValueError(f"{name} содержит значения вне [0, 1]")
+
+        if not np.allclose(probs.sum(axis=1), 1.0, atol=1e-5):
+            raise ValueError(f"Сумма вероятностей в {name} не равна 1")
+
+    for name, confidence in [
+        ("baseline_confidence", baseline_confidence),
+        ("transformer_confidence", transformer_confidence),
+    ]:
+        if not np.isfinite(confidence).all():
+            raise ValueError(f"{name} содержит NaN или inf")
+
+        if ((confidence < 0) | (confidence > 1)).any():
+            raise ValueError(f"{name} содержит значения вне [0, 1]")
+
+    for name, labels in [
+        ("y_true", y_true),
+        ("y_baseline", y_baseline),
+        ("y_transformer", y_transformer),
+    ]:
+        if not np.isin(labels, [0, 1]).all():
+            raise ValueError(f"{name} содержит метки вне диапазона 0/1")
 
     for i, values in enumerate(zip(
             texts, y_true, y_baseline, y_transformer, baseline_probs,
@@ -159,9 +216,10 @@ def find_disagreements(texts, y_true, y_baseline, y_transformer,
                 results["baseline_only_correct"].append(case)
             else:
                 results["transformer_only_correct"].append(case)
-
         elif base != true:
             results["both_wrong_same"].append(case)
+        else:
+            results["both_correct"].append(case)
 
         if len(str(text)) >= long_text_chars:
             results["long_text"].append(case)
@@ -169,6 +227,14 @@ def find_disagreements(texts, y_true, y_baseline, y_transformer,
         # Порог не является универсальным и не означает, что пример объективно неоднозначен.
         if max(base_conf, trans_conf) < 0.60:
             results["low_confidence_both_models"].append(case)
+
+        # Уверенная ошибка — полезный объект для ручного анализа.
+        if base != true and base_conf >= 0.90:
+            results["baseline_high_confidence_error"].append(case)
+
+        if trans != true and trans_conf >= 0.90:
+            results["transformer_high_confidence_error"].append(case)
+
     return dict(results)
 
 
@@ -214,10 +280,10 @@ def main():
 
     # Предикты
     print("\nRunning baseline predictions...")
-    y_baseline, baseline_probs, baseline_confidence= predict_baseline(base_model, vectorizer, texts)
+    y_baseline, baseline_probs, baseline_confidence = predict_baseline(base_model, vectorizer, texts)
 
     print("Running transformer predictions...")
-    y_transformer,transformer_probs, transformer_confidence = predict_transformer(
+    y_transformer, transformer_probs, transformer_confidence = predict_transformer(
         trans_model, tokenizer, texts, config, config.B4["transformer_batch_size"])
 
     # Общие метрики
@@ -263,6 +329,20 @@ def main():
             print(f"  {case['text'][:250].replace(chr(10), ' ')}...\n")
 
     # Сохраняем примеры для отчёта
+
+    examples = {}
+    for category, cases in disagreements.items():
+        if category.endswith("high_confidence_error"):
+            confidence_key = ("baseline_confidence" if category.startswith("baseline") else "transformer_confidence")
+            selected = sorted(cases, key=lambda case: case[confidence_key], reverse=True)[:20]
+        elif category.startswith("baseline_false"):
+            selected = sorted(cases, key=lambda case: case["baseline_confidence"])[:20]
+        elif category.startswith("transformer_false"):
+            selected = sorted(cases, key=lambda case: case["transformer_confidence"])[:20]
+        else:
+            selected = cases[:20]
+        examples[category] = selected
+
     report = {
         "dataset": "stanfordnlp/imdb",
         "evaluation_split": "test",
@@ -270,8 +350,20 @@ def main():
         "summary": {
             "baseline_accuracy": round(float(base_acc), 4),
             "baseline_f1": round(float(base_f1), 4),
+            "baseline_precision": round(
+                precision_score(labels, y_baseline, zero_division=0), 4
+            ),
+            "baseline_recall": round(
+                recall_score(labels, y_baseline, zero_division=0), 4
+            ),
             "transformer_accuracy": round(float(trans_acc), 4),
             "transformer_f1": round(float(trans_f1), 4),
+            "transformer_precision": round(
+                precision_score(labels, y_transformer, zero_division=0), 4
+            ),
+            "transformer_recall": round(
+                recall_score(labels, y_transformer, zero_division=0), 4
+            ),
         },
         "classification_reports": {
             "baseline": classification_report(
@@ -289,34 +381,37 @@ def main():
         },
         "category_counts": {category: len(cases) for category, cases in disagreements.items()},
         # Ограничиваем размер JSON: по 20 примеров на категорию.
-        "examples": {
-            category: cases[:20] for category, cases in disagreements.items()
-        }
+        "examples": examples
     }
 
     with open(save_dir / "comparison_report.json", "w") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
-    try:
-        import pandas as pd
-        error_rows = []
-        for category, cases in disagreements.items():
-            if category in {"both_correct"}:
-                continue
-            for case in cases:
-                row = {"category": category, **case}
-                error_rows.append(row)
-        if error_rows:
-            pd.DataFrame(error_rows).drop_duplicates(
-                subset=["category", "index"]
-            ).to_csv(save_dir / "error_examples.csv", index=False, encoding="utf-8-sig")
-    except ImportError:
-        print("pandas не установлен: CSV с примерами не сохранён; JSON сохранён.")
+    error_categories = {
+        "baseline_false_positive",
+        "baseline_false_negative",
+        "transformer_false_positive",
+        "transformer_false_negative",
+        "baseline_only_correct",
+        "transformer_only_correct",
+        "both_wrong_same",
+        "baseline_high_confidence_error",
+        "transformer_high_confidence_error",
+    }
+    error_rows = []
+    for category in error_categories:
+        for case in disagreements.get(category, []):
+            error_rows.append({"category": category, **case})
+    if error_rows:
+        pd.DataFrame(error_rows).drop_duplicates(
+            subset=["category", "index"]
+        ).to_csv(save_dir / "error_examples.csv", index=False, encoding="utf-8-sig")
 
-    #График: сравнение метрик
+    # График: сравнение метрик
     save_comparison_plot(save_dir, base_acc, base_f1, trans_acc, trans_f1)
     print(f"\nAnalysis saved to: {save_dir}")
     print("Важно: сарказм и пограничность нельзя надёжно определить только длиной/уверенностью;")
     print("отберите сохранённые примеры и проанализируйте их вручную для отчёта.")
+
 
 if __name__ == "__main__":
     main()
