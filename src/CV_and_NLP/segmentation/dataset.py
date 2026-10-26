@@ -158,13 +158,13 @@ def get_segmentation_dataloaders(
     num_workers = (Config.B3["num_workers"] if num_workers is None else num_workers)
 
     train_dataset = VOCSegmentationDataset(
-        root=Config.voc_dir,
+        root=Config.voc_dir / "VOCdevkit" / "VOC2012",
         image_set="train",
         image_size=image_size,
         augment=True,
     )
     val_dataset = VOCSegmentationDataset(
-        root=Config.voc_dir,
+        root=Config.voc_dir / "VOCdevkit" / "VOC2012",
         image_set="val",
         image_size=image_size,
         augment=False,

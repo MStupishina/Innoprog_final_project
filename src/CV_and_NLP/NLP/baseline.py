@@ -1,33 +1,13 @@
 import json
 import pickle
-
 import numpy as np
-from datasets import load_dataset
 from matplotlib import pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score, classification_report, confusion_matrix
-from sklearn.model_selection import train_test_split
 
 from configs.cv_and_nlp_config import Config
-
-
-def load_imdb_data(config, sample_size=None):
-    """Загружает IMDb датасет через HuggingFace datasets."""
-    print("Loading IMDb dataset...")
-    dataset = load_dataset("stanfordnlp/imdb", cache_dir=str(config.imdb_cache), )
-    # ^ HuggingFace сам кэширует
-
-    train_df = dataset["train"].to_pandas()
-    test_df = dataset["test"].to_pandas()
-
-    if sample_size and sample_size < len(train_df):
-        train_df = train_df.sample(n=sample_size, random_state=config.seed)
-        # Проверяем баланс
-        pos_ratio = train_df["label"].mean()
-        print(f"Sampled {sample_size} examples, positive ratio: {pos_ratio:.2f}")
-
-    return train_df, test_df
+from src.CV_and_NLP.NLP.imdb_data import load_imdb_splits
 
 
 def main():
@@ -36,20 +16,16 @@ def main():
     save_dir.mkdir(parents=True, exist_ok=True)
 
     # Загрузка данных
-    train_df, test_df = load_imdb_data(config=config, sample_size=config.B4["sample_size"])
-    X_train_val, y_train_val = train_df["text"].values, train_df["label"].values
-    X_train, X_val, y_train, y_val = train_test_split(
-        X_train_val,
-        y_train_val,
-        test_size=config.B4["val_size"],
-        random_state=config.seed,
-        stratify=y_train_val,
-    )
-    X_test, y_test = test_df["text"].values, test_df["label"].values
-
+    train_df, val_df, test_df = load_imdb_splits(config)
+    X_train = train_df["text"].to_numpy()
+    y_train = train_df["label"].to_numpy()
+    X_val = val_df["text"].to_numpy()
+    y_val = val_df["label"].to_numpy()
+    X_test = test_df["text"].to_numpy()
+    y_test = test_df["label"].to_numpy()
     print(f"Train: {len(X_train)}, Test: {len(X_test)}")
 
-    # ── TF-IDF векторизация ──
+    # TF-IDF векторизация
     print("\nFitting TF-IDF vectorizer...")
     vectorizer = TfidfVectorizer(
         max_features=config.B4["tfidf_max_features"],
@@ -63,7 +39,7 @@ def main():
 
     print(f"Vocabulary size: {len(vectorizer.vocabulary_)}")
 
-    # ── Logistic Regression ──
+    #Logistic Regression
     print("\nTraining Logistic Regression...")
     model = LogisticRegression(
         max_iter=1000,
@@ -93,7 +69,7 @@ def main():
     print(f"F1:       {f1:.4f}")
     print(f"\n{classification_report(y_test, y_pred, target_names=['neg', 'pos'])}")
 
-    # ── Сохранение артефактов ──
+    # Сохранение артефактов
     # Модель и векторизатор
     with open(save_dir / "model.pkl", "wb") as f:
         pickle.dump(model, f)
@@ -105,7 +81,7 @@ def main():
     with open(save_dir / "metrics.json", "w") as f:
         json.dump(metrics, f, indent=2)
 
-    # ── Confusion Matrix ──
+    # Confusion Matrix
     cm = confusion_matrix(y_test, y_pred)
     fig, ax = plt.subplots(figsize=(6, 5))
     im = ax.imshow(cm, cmap="Blues")
@@ -129,7 +105,7 @@ def main():
     plt.savefig(save_dir / "confusion_matrix.png", dpi=100)
     plt.close()
 
-    # ── Топ слова (интерпретируемость) ──
+    # Топ слова (интерпретируемость)
     feature_names = vectorizer.get_feature_names_out()
     coef = model.coef_[0]
 

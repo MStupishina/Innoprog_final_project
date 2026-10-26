@@ -66,6 +66,31 @@ def predict(model: torch.nn.Module, image_tensor: torch.Tensor, device: str):
     image_tensor = image_tensor.to(device)
     output = model(image_tensor)
     prediction = output.argmax(dim=1).squeeze(0)
+    """#probs = torch.softmax(output, dim=1)
+
+
+    # Проверяем, насколько модель уверена в выбранном классе
+    #max_probs = probs.max(dim=1).values
+
+    #print("Prediction shape:", tuple(prediction.shape))
+    print("Predicted class IDs:", torch.unique(prediction).tolist())
+    print(f"Mean max probability: {max_probs.mean().item():.4f}")
+    print(f"Min max probability:  {max_probs.min().item():.4f}")
+    print(f"Max max probability:  {max_probs.max().item():.4f}")
+
+    # Проверяем классы в нескольких точках изображения
+    for y, x in [
+        (64, 64),
+        (128, 128),
+        (192, 192),
+    ]:
+        pixel_probs = probs[0, :, y, x]
+        top_probs, top_classes = pixel_probs.topk(5)
+
+        print(f"\nPixel ({x}, {y}):")
+        for cls, prob in zip(top_classes.tolist(), top_probs.tolist()):
+            print(f"  Class {cls:2d}: {prob:.4f}")
+"""
 
     return prediction.cpu().numpy()
 
@@ -171,6 +196,16 @@ def main():
         image_tensor=image_tensor,
         device=device,
     )
+
+
+    classes, counts = np.unique(
+        prediction,
+        return_counts=True,
+    )
+
+    print("\nPredicted classes:")
+    for cls, count in zip(classes, counts):
+        print(f"Class {cls:2d}: {count:6d} pixels ({count / counts.sum():.2%})")
 
     # Сохраняем результат
     image_name = args.image.stem

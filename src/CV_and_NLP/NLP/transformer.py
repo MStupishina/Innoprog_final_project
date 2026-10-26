@@ -1,16 +1,14 @@
 import json
-
 import torch
-from datasets import load_dataset
 from matplotlib import pyplot as plt
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from transformers import (DistilBertTokenizer, DistilBertForSequenceClassification,
-                          get_linear_schedule_with_warmup, AutoTokenizer, AutoModelForSequenceClassification)
+from transformers import get_linear_schedule_with_warmup, AutoTokenizer, AutoModelForSequenceClassification
 from torch.optim import AdamW
 
 from configs.cv_and_nlp_config import Config
+from src.CV_and_NLP.NLP.imdb_data import load_imdb_splits
 
 
 class IMDbDataset(Dataset):
@@ -102,38 +100,21 @@ def main():
 
     #Загрузка данных
     print("Loading IMDb dataset...")
-    dataset = load_dataset("stanfordnlp/imdb")
-    train_val_data = dataset["train"]
-
-    # Подвыборка для скорости
-    if config.B4["sample_size"] and config.B4["sample_size"] < len(train_val_data):
-        train_val_data = train_val_data.shuffle(seed=config.seed).select(range(config.B4["sample_size"]))
-
-    split = train_val_data.train_test_split(
-        test_size=config.B4["val_size"],
-        seed=config.seed,
-        stratify_by_column="label",
-    )
-    train_data = split["train"]
-    val_data = split["test"]
-    test_data = dataset["test"]
-
+    train_data, val_data, test_data = load_imdb_splits(config)
     print(f"Train: {len(train_data)}, Val: {len(val_data)} Test: {len(test_data)}")
-
     #Tokenizer
     tokenizer = AutoTokenizer.from_pretrained(config.B4["transformer_model"])
-
     #Датасеты
     train_dataset = IMDbDataset(
-        train_data["text"], train_data["label"],
+        train_data["text"].tolist(), train_data["label"].tolist(),
         tokenizer, config.B4["max_length"],
     )
     val_dataset = IMDbDataset(
-        val_data["text"], val_data["label"],
+        val_data["text"].tolist(), val_data["label"].tolist(),
         tokenizer, config.B4["max_length"],
     )
     test_dataset = IMDbDataset(
-        test_data["text"], test_data["label"],
+        test_data["text"].tolist(), test_data["label"].tolist(),
         tokenizer, config.B4["max_length"],
     )
 

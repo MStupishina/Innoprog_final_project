@@ -35,13 +35,8 @@ from src.CV_and_NLP.segmentation.dataset import VOCSegmentationDataset
 from src.CV_and_NLP.segmentation.model import UNet
 
 
-# ============================================================
-# Загрузка модели
-# ============================================================
-
 def load_model(model_path: Path, device: str) -> torch.nn.Module:
     """Загружает обученную U-Net."""
-
     model = UNet().to(device)
     state_dict = torch.load(
         model_path,
@@ -50,13 +45,7 @@ def load_model(model_path: Path, device: str) -> torch.nn.Module:
     )
     model.load_state_dict(state_dict)
     model.eval()
-
     return model
-
-
-# ============================================================
-# Метрики
-# ============================================================
 
 def compute_class_iou(
         prediction: torch.Tensor,
@@ -68,7 +57,6 @@ def compute_class_iou(
     Считает IoU отдельно для каждого класса.
     Если класс отсутствует и в GT, и в prediction, его IoU возвращается как None.
     """
-
     prediction = prediction.flatten()
     target = target.flatten()
     valid = target != ignore_index
@@ -88,38 +76,25 @@ def compute_class_iou(
 
     return class_ious
 
-
 def compute_mean_iou(class_ious: list) -> float:
     """Средний IoU только по присутствующим классам."""
-
     valid_ious = [
         iou for iou in class_ious
         if iou is not None
     ]
     if not valid_ious:
         return 0.0
-
     return float(np.mean(valid_ious))
 
 
-# ============================================================
-# Подготовка изображения
-# ============================================================
-
 def denormalize_image(image: torch.Tensor) -> np.ndarray:
     """Возвращает изображение из ImageNet-normalized tensor."""
-
     mean = np.array([0.485, 0.456, 0.406])
     std = np.array([0.229, 0.224, 0.225])
     image = image.cpu().numpy().transpose(1, 2, 0)
     image = image * std + mean
 
     return np.clip(image, 0.0, 1.0)
-
-
-# ============================================================
-# Визуализация примера
-# ============================================================
 
 def save_sample(
         image: torch.Tensor,
@@ -130,7 +105,6 @@ def save_sample(
         output_path: Path,
 ) -> None:
     """Сохраняет: Original | Ground Truth | Prediction | Error"""
-
     image = denormalize_image(image)
     target = target.cpu().numpy()
     prediction = prediction.cpu().numpy()
@@ -138,7 +112,6 @@ def save_sample(
     error = prediction != target
     # Ignore pixels не считаем ошибками
     error[target == Config.B3["ignore_index"]] = False
-
     fig, axes = plt.subplots(1, 4, figsize=(16, 4))
     axes[0].imshow(image)
     axes[0].set_title("Original")
@@ -166,10 +139,6 @@ def save_sample(
     plt.close(fig)
 
 
-# ============================================================
-# Confusion matrix
-# ============================================================
-
 def update_confusion_matrix(
         confusion_matrix: np.ndarray,
         prediction: torch.Tensor,
@@ -178,7 +147,6 @@ def update_confusion_matrix(
         ignore_index: int,
 ) -> None:
     """Обновляет confusion matrix по пикселям. Строки: Ground Truth. Столбцы: Prediction"""
-
     prediction = prediction.flatten()
     target = target.flatten()
     valid = target != ignore_index
@@ -218,19 +186,13 @@ def save_confusion_matrix(
     plt.close(fig)
 
 
-# ============================================================
-# Основной анализ
-# ============================================================
-
 @torch.no_grad()
 def run_error_analysis() -> None:
     config = Config()
     device = config.device
-    # --------------------------------------------------------
-    # Пути
-    # --------------------------------------------------------
-    artifact_dir = config.artifacts_B3
 
+    # Пути
+    artifact_dir = config.artifacts_B3
     analysis_dir = artifact_dir / "error_analysis"
     best_dir = analysis_dir / "best_samples"
     worst_dir = analysis_dir / "worst_samples"
@@ -243,62 +205,37 @@ def run_error_analysis() -> None:
             f"Не найдена модель: {model_path}"
         )
 
-    # --------------------------------------------------------
     # Модель
-    # --------------------------------------------------------
+    model = load_model(model_path=model_path,device=device)
 
-    model = load_model(
-        model_path=model_path,
-        device=device,
-    )
-
-    # --------------------------------------------------------
     # Validation dataset
-    # --------------------------------------------------------
-
     dataset = VOCSegmentationDataset(
-        root=config.voc_dir,
+        root=config.voc_dir / "VOCdevkit" / "VOC2012",
         image_set="val",
         image_size=config.B3["img_size"],
         augment=False,
     )
     print(f"Device: {device}")
     print(f"Validation samples: {len(dataset)}")
-    # --------------------------------------------------------
-    # Параметры
-    # --------------------------------------------------------
 
+    # Параметры
     num_classes = config.B3["out_channels"]
     ignore_index = config.B3["ignore_index"]
-    class_names = [
-        "background",
-        *config.VOC_CLASSES,
-    ]
+    class_names = ["background",*config.VOC_CLASSES]
 
-    # --------------------------------------------------------
     # Накопители
-    # --------------------------------------------------------
-
     confusion_matrix = np.zeros((num_classes, num_classes), dtype=np.int64)
-
     # IoU каждого класса по изображениям
     class_iou_values = [[] for _ in range(num_classes)]
     samples = []
 
-    # ========================================================
     # Inference
-    # ========================================================
-
     for idx in range(len(dataset)):
         image, target = dataset[idx]
         image_batch = image.unsqueeze(0).to(device)
         output = model(image_batch)
         prediction = output.argmax(dim=1).squeeze(0).cpu()
-
-        # ----------------------------------------------------
         # IoU текущего изображения
-        # ----------------------------------------------------
-
         class_ious = compute_class_iou(
             prediction=prediction,
             target=target,
@@ -307,17 +244,11 @@ def run_error_analysis() -> None:
         )
         image_miou = compute_mean_iou(class_ious)
 
-        # ----------------------------------------------------
         # Сохраняем IoU классов
-        # ----------------------------------------------------
         for class_id, iou in enumerate(class_ious):
             if iou is not None:
                 class_iou_values[class_id].append(iou)
-
-        # ----------------------------------------------------
         # Confusion matrix
-        # ----------------------------------------------------
-
         update_confusion_matrix(
             confusion_matrix=confusion_matrix,
             prediction=prediction,
@@ -326,10 +257,7 @@ def run_error_analysis() -> None:
             ignore_index=ignore_index,
         )
 
-        # ----------------------------------------------------
         # Информация о примере
-        # ----------------------------------------------------
-
         image_id = dataset.image_ids[idx]
         samples.append(
             {
@@ -341,23 +269,15 @@ def run_error_analysis() -> None:
             }
         )
 
-    # ========================================================
     # Сортируем изображения по mIoU
-    # ========================================================
-
     samples.sort(key=lambda sample: sample["miou"])
-
-    # ========================================================
     # Худшие примеры
-    # ========================================================
-
     num_worst = min(10, len(samples))
     for rank, sample in enumerate(samples[:num_worst], start=1):
         output_path = (
                 worst_dir
                 / f"{rank:02d}_{sample['image_id']}.png"
         )
-
         save_sample(
             image=sample["image"],
             target=sample["target"],
@@ -367,10 +287,7 @@ def run_error_analysis() -> None:
             output_path=output_path,
         )
 
-    # ========================================================
     # Лучшие примеры
-    # ========================================================
-
     num_best = min(5, len(samples))
     best_samples = list(reversed(samples[-num_best:]))
     for rank, sample in enumerate(best_samples, start=1):
@@ -378,7 +295,6 @@ def run_error_analysis() -> None:
                 best_dir
                 / f"{rank:02d}_{sample['image_id']}.png"
         )
-
         save_sample(
             image=sample["image"],
             target=sample["target"],
@@ -388,9 +304,7 @@ def run_error_analysis() -> None:
             output_path=output_path,
         )
 
-    # ========================================================
     # Per-class IoU
-    # ========================================================
     per_class_iou = {}
     for class_id, class_name in enumerate(class_names):
         values = class_iou_values[class_id]
@@ -399,25 +313,18 @@ def run_error_analysis() -> None:
         else:
             per_class_iou[class_name] = None
 
-    # ========================================================
     # Overall mIoU
-    # ========================================================
     valid_ious = [iou for iou in per_class_iou.values() if iou is not None]
     mean_iou = float(np.mean(valid_ious)) if valid_ious else 0.0
 
-    # ========================================================
     # Confusion matrix
-    # ========================================================
-
     save_confusion_matrix(
         confusion_matrix=confusion_matrix,
         class_names=class_names,
         output_path=analysis_dir / "confusion_matrix.png",
     )
 
-    # ========================================================
     # JSON
-    # ========================================================
     worst_results = [
         {
             "image_id": sample["image_id"],
@@ -425,7 +332,6 @@ def run_error_analysis() -> None:
         }
         for sample in samples[:num_worst]
     ]
-
     best_results = [
         {
             "image_id": sample["image_id"],
@@ -433,7 +339,6 @@ def run_error_analysis() -> None:
         }
         for sample in best_samples
     ]
-
     results = {
         "split": "val",
         "num_samples": len(dataset),
@@ -446,17 +351,12 @@ def run_error_analysis() -> None:
         "worst_samples": worst_results,
         "best_samples": best_results,
     }
-
     with open(analysis_dir / "error_analysis.json", "w", encoding="utf-8") as file:
         json.dump(results, file, indent=2, ensure_ascii=False)
-
     with open(analysis_dir / "per_class_iou.json", "w", encoding="utf-8") as file:
         json.dump(results["per_class_iou"], file, indent=2, ensure_ascii=False)
 
-    # ========================================================
     # Вывод
-    # ========================================================
-
     print("\n" + "=" * 60)
     print("B3 ERROR ANALYSIS")
     print("=" * 60)
@@ -473,7 +373,6 @@ def run_error_analysis() -> None:
     for sample in worst_results:
         print(f"{sample['image_id']:15s} mIoU={sample['miou']:.4f}")
     print(f"\nResults saved to: {analysis_dir}")
-
 
 if __name__ == "__main__":
     run_error_analysis()
