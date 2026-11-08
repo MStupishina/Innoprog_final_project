@@ -11,11 +11,15 @@ def load_imdb_splits(config):
     train_df = dataset["train"].to_pandas()
     # Одна и та же подвыборка для обеих моделей
     sample_size = config.B4["sample_size"]
-    if sample_size and sample_size < len(train_df):
-        train_df = train_df.sample(
-            n=sample_size,
-            random_state=config.seed,
-        )
+    if sample_size is not None:
+        if not isinstance(sample_size, int) or sample_size <= 0:
+            raise ValueError("sample_size должен быть положительным целым числом.")
+
+        if sample_size < len(train_df):
+            train_df = train_df.sample(
+                n=sample_size,
+                random_state=config.seed,
+            )
     # Одинаковое стратифицированное разбиение
     train_df, val_df = train_test_split(
         train_df,
